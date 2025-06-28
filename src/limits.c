@@ -253,7 +253,6 @@ void gain_exp(struct char_data *ch, int gain)
         send_to_char(ch, "You rise a level!\r\n");
       else
 	send_to_char(ch, "You rise %d levels!\r\n", num_levels);
-      set_title(ch, NULL);
       if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
         run_autowiz();
     }
@@ -295,7 +294,6 @@ void gain_exp_regardless(struct char_data *ch, int gain)
         send_to_char(ch, "You rise a level!\r\n");
       else
 	send_to_char(ch, "You rise %d levels!\r\n", num_levels);
-      set_title(ch, NULL);
     }
   }
   if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))

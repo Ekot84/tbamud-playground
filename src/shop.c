@@ -1386,7 +1386,7 @@ static void list_detailed_shop(struct char_data *ch, int shop_nr)
 	YESNO(SHOP_FUNC(shop_nr)));
 
     if ((k = get_char_num(SHOP_KEEPER(shop_nr))))
-      send_to_char(ch, "Coins:      [%9d], Bank: [%9d] (Total: %d)\r\n",
+      send_to_char(ch, "Coins:      [%9ld], Bank: [%9ld] (Total: %ld)\r\n",
 	 GET_GOLD(k), SHOP_BANK(shop_nr), GET_GOLD(k) + SHOP_BANK(shop_nr));
   } else
     send_to_char(ch, "<NONE>\r\n");

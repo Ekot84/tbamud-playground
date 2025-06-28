@@ -801,7 +801,7 @@ ACMD(do_gold)
   else if (GET_GOLD(ch) == 1)
     send_to_char(ch, "You have one miserable little gold coin.\r\n");
   else
-    send_to_char(ch, "You have %d gold coins.\r\n", GET_GOLD(ch));
+    send_to_char(ch, "You have %ld gold coins.\r\n", GET_GOLD(ch));
 }
 
 ACMD(do_score)
@@ -825,11 +825,11 @@ ACMD(do_score)
   send_to_char(ch, "Your armor class is %d/10, and your alignment is %d.\r\n",
       compute_armor_class(ch), GET_ALIGNMENT(ch));
 
-  send_to_char(ch, "You have %d exp, %d gold coins, and %d questpoints.\r\n",
+  send_to_char(ch, "You have %ld exp, %ld gold coins, and %d questpoints.\r\n",
       GET_EXP(ch), GET_GOLD(ch), GET_QUESTPOINTS(ch));
 
   if (GET_LEVEL(ch) < LVL_IMMORT)
-    send_to_char(ch, "You need %d exp to reach your next level.\r\n",
+    send_to_char(ch, "You need %ld exp to reach your next level.\r\n",
     level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch));
 
   send_to_char(ch, "You have earned %d quest points.\r\n", GET_QUESTPOINTS(ch));
@@ -1739,7 +1739,7 @@ ACMD(do_levels)
   }
 
   for (i = min_lev; i < max_lev; i++) {
-    nlen = snprintf(buf + len, sizeof(buf) - len, "[%2d] %8d-%-8d : ", (int)i,
+    nlen = snprintf(buf + len, sizeof(buf) - len, "[%2d] %8ld-%-8ld : ", (int)i,
     level_exp(GET_CLASS(ch), i), level_exp(GET_CLASS(ch), i + 1) - 1);
     if (len + nlen >= sizeof(buf))
       break;
@@ -1763,7 +1763,7 @@ ACMD(do_levels)
   }
 
   if (len < sizeof(buf) && max_lev == LVL_IMMORT)
-    snprintf(buf + len, sizeof(buf) - len, "[%2d] %8d          : Immortality\r\n",
+    snprintf(buf + len, sizeof(buf) - len, "[%2d] %8ld          : Immortality\r\n",
         LVL_IMMORT, level_exp(GET_CLASS(ch), LVL_IMMORT));
   page_string(ch->desc, buf, TRUE);
 }
