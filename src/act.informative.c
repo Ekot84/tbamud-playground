@@ -505,7 +505,7 @@ void look_at_room(struct char_data *ch, int ignore_brief)
     return;
   }
 
-  send_to_char(ch, "%s", CCYEL(ch, C_NRM));
+  send_to_char(ch, "%s", CCCYN(ch, C_NRM));
   if (!IS_NPC(ch) && PRF_FLAGGED(ch, PRF_SHOWVNUMS)) {
     char buf[MAX_STRING_LENGTH];
 

@@ -18,7 +18,7 @@ int backstab_mult(int level);
 void do_start(struct char_data *ch);
 bitvector_t find_class_bitvector(const char *arg);
 int invalid_class(struct char_data *ch, struct obj_data *obj);
-int level_exp(int chclass, int level);
+long level_exp(int chclass, int level);
 int parse_class(char arg);
 void roll_real_abils(struct char_data *ch);
 byte saving_throws(int class_num, int type, int level);

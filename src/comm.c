@@ -1913,13 +1913,13 @@ static int process_input(struct descriptor_data *t)
 	  } else
 	    space_left++;
 	}
-      } else if (isascii(*ptr) && isprint(*ptr)) {
-	if ((*(write_point++) = *ptr) == '$') {		/* copy one character */
-	  *(write_point++) = '$';	/* if it's a $, double it */
-	  space_left -= 2;
-	} else
-	  space_left--;
-      }
+      } else if ((unsigned char)*ptr >= 32) {
+  if ((*(write_point++) = *ptr) == '$') {
+    *(write_point++) = '$';
+    space_left -= 2;
+  } else
+    space_left--;
+}
     }
 
     *write_point = '\0';
