@@ -806,24 +806,25 @@ static void do_stat_character(struct char_data *ch, struct char_data *k)
 
     send_to_char(ch, "Created: [%s], Last Logon: [%s]\r\n", buf1, buf2);
 
-    send_to_char(ch, "Played: [%dh %dm], Age: [%d], STL[%d]/per[%d]/NSTL[%d]",
-            k->player.time.played / 3600, (k->player.time.played % 3600) / 60,
-            age(k)->year, GET_PRACTICES(k), int_app[GET_INT(k)].learn,
-	    wis_app[GET_WIS(k)].bonus);
-    /* Display OLC zone for immorts. */
-    if (GET_LEVEL(k) >= LVL_BUILDER) {
-      if (GET_OLC_ZONE(k)==AEDIT_PERMISSION)
-        send_to_char(ch, ", OLC[%sAedit%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
-      else if (GET_OLC_ZONE(k)==HEDIT_PERMISSION)
-        send_to_char(ch, ", OLC[%sHedit%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
-      else if (GET_OLC_ZONE(k) == ALL_PERMISSION)
-        send_to_char(ch, ", OLC[%sAll%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
-      else if (GET_OLC_ZONE(k)==NOWHERE)
-        send_to_char(ch, ", OLC[%sOFF%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
-      else
-        send_to_char(ch, ", OLC[%s%d%s]", CCCYN(ch, C_NRM), GET_OLC_ZONE(k), CCNRM(ch, C_NRM));
-    }
-    send_to_char(ch, "\r\n");
+  send_to_char(ch, "Played: [%dh %dm], Age: [%d], STL[%d]/per[%d]/NSTL[%d]",
+      k->player.time.played / 3600,
+      (k->player.time.played % 3600) / 60,
+      age(k)->year,
+      GET_PRACTICES(k),
+      GET_INT(k) / 20,
+      GET_WIS(k) / 20);
+        if (GET_OLC_ZONE(k)==AEDIT_PERMISSION)
+         send_to_char(ch, ", OLC[%sAedit%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
+        else if (GET_OLC_ZONE(k)==HEDIT_PERMISSION)
+         send_to_char(ch, ", OLC[%sHedit%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
+        else if (GET_OLC_ZONE(k) == ALL_PERMISSION)
+         send_to_char(ch, ", OLC[%sAll%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
+        else if (GET_OLC_ZONE(k)==NOWHERE)
+          send_to_char(ch, ", OLC[%sOFF%s]", CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
+       else
+          send_to_char(ch, ", OLC[%s%d%s]", CCCYN(ch, C_NRM), GET_OLC_ZONE(k), CCNRM(ch, C_NRM));
+    
+      send_to_char(ch, "\r\n");
   }
   send_to_char(ch, "Str: [%s%d/%d%s]  Int: [%s%d%s]  Wis: [%s%d%s]  "
 	  "Dex: [%s%d%s]  Con: [%s%d%s]  Cha: [%s%d%s]\r\n",
@@ -848,8 +849,8 @@ static void do_stat_character(struct char_data *ch, struct char_data *k)
                       CCYEL(ch, C_NRM), GET_PAGE_LENGTH(k), CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
 
   send_to_char(ch, 
-    "AC: [%d%+d/10], Hitroll: [%2d], Damroll: [%2d], Magic Resist: [%d/999], Elemental Resist: [%d/999]\r\n",
-    GET_AC(k), dex_app[GET_DEX(k)].defensive,
+    "AC: [%3d], Hitroll: [%2d], Damroll: [%2d], Magic Resist: [%d/999], Elemental Resist: [%d/999]\r\n",
+    compute_armor_class(k),
     k->points.hitroll,
     k->points.damroll,
     GET_MAGIC_RESISTANCE(k),
@@ -3563,11 +3564,11 @@ static struct zcheck_affs {
   {APPLY_MOVE,       -50,  50, "movement"},
   {APPLY_GOLD,         0,   0, "gold"},
   {APPLY_EXP,          0,   0, "experience"},
-  {APPLY_AC,         -10,  10, "magical AC"},
+  {APPLY_AC,         -999,  999, "Armor Class"}, 
   {APPLY_HITROLL,      0, -99, "hitroll"},       /* Handled seperately below */
   {APPLY_DAMROLL,      0, -99, "damroll"},       /* Handled seperately below */
-  {APPLY_MAGIC_RESISTANCE, 0,   999, "Magic Resistance"},
-  {APPLY_ELEMENTAL_RESISTANCE,  0,   99, "Elemental Resistance"}
+  {APPLY_MAGIC_RESISTANCE, -999,   999, "Magic Resistance"},
+  {APPLY_ELEMENTAL_RESISTANCE,  -999,   999, "Elemental Resistance"}
 };
 
 /* These are ABS() values. */

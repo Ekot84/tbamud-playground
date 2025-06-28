@@ -62,7 +62,6 @@ static void group_gain(struct char_data *ch, struct char_data *victim);
 static void solo_gain(struct char_data *ch, struct char_data *victim);
 /** @todo refactor this function name */
 static char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural);
-static int compute_thaco(struct char_data *ch, struct char_data *vict);
 
 
 #define IS_WEAPON(type) (((type) >= TYPE_HIT) && ((type) < TYPE_SUFFERING))
@@ -82,14 +81,44 @@ void appear(struct char_data *ch)
 	FALSE, ch, 0, 0, TO_ROOM);
 }
 
+static int compute_accuracy(struct char_data *ch)
+{
+  int accuracy = 0;
+
+  if (IS_NPC(ch))
+    accuracy = 20;
+  else
+    accuracy = GET_LEVEL(ch) / 2;
+
+  accuracy += GET_STR(ch) / 20;
+  accuracy += GET_HITROLL(ch);
+  accuracy += (GET_INT(ch) + GET_WIS(ch)) / 10;
+
+  return accuracy;
+}
+
+
 int compute_armor_class(struct char_data *ch)
 {
   int armorclass = GET_AC(ch);
 
   if (AWAKE(ch))
-    armorclass += dex_app[GET_DEX(ch)].defensive * 10;
+    armorclass += GET_DEX(ch) / 2;
 
-  return (MAX(-100, armorclass));      /* -100 is lowest */
+  return MIN(MAX_AC, armorclass);
+}
+
+float compute_armor_reduction(struct char_data *ch)
+{
+  int ac = compute_armor_class(ch);
+
+  /* Cap at 80% reduction */
+  if (ac >= 800)
+    return 0.80f;
+  if (ac <= 0)
+    return 0.0f;
+
+  return (float)ac / 1000.0f;
 }
 
 void update_pos(struct char_data *victim)
@@ -654,6 +683,15 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
 
   /* Set the maximum damage per round and subtract the hit points */
   dam = MAX(MIN(dam, 100), 0);
+
+  /* Apply armor reduction here */
+  float reduction = compute_armor_reduction(victim);
+  dam = (int)(dam * (1.0 - reduction));
+
+  /* Ensure minimum 1 damage if you vill */
+  if (dam < 1)
+    dam = 1;
+
   GET_HIT(victim) -= dam;
 
   /* Gain exp for the hit */
@@ -783,29 +821,10 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
   return (dam);
 }
 
-/* Calculate the THAC0 of the attacker. 'victim' currently isn't used but you
- * could use it for special cases like weapons that hit evil creatures easier
- * or a weapon that always misses attacking an animal. */
-static int compute_thaco(struct char_data *ch, struct char_data *victim)
-{
-  int calc_thaco;
-
-  if (!IS_NPC(ch))
-    calc_thaco = thaco(GET_CLASS(ch), GET_LEVEL(ch));
-  else		/* THAC0 for monsters is set in the HitRoll */
-    calc_thaco = 20;
-  calc_thaco -= str_app[STRENGTH_APPLY_INDEX(ch)].tohit;
-  calc_thaco -= GET_HITROLL(ch);
-  calc_thaco -= (int) ((GET_INT(ch) - 13) / 1.5);	/* Intelligence helps! */
-  calc_thaco -= (int) ((GET_WIS(ch) - 13) / 1.5);	/* So does wisdom */
-
-  return calc_thaco;
-}
-
 void hit(struct char_data *ch, struct char_data *victim, int type)
 {
   struct obj_data *wielded = GET_EQ(ch, WEAR_WIELD);
-  int w_type, victim_ac, calc_thaco, dam, diceroll;
+  int w_type, victim_ac, dam, diceroll;
 
   /* Check that the attacker and victim exist */
   if (!ch || !victim) return;
@@ -830,31 +849,24 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
       w_type = TYPE_HIT;
   }
 
-  /* Calculate chance of hit. Lower THAC0 is better for attacker. */
-  calc_thaco = compute_thaco(ch, victim);
-
   /* Calculate the raw armor including magic armor.  Lower AC is better for defender. */
   victim_ac = compute_armor_class(victim) / 10;
 
-  /* roll the die and take your chances... */
-  diceroll = rand_number(1, 20);
+  /* Compute accuracy and roll */
+  int accuracy = compute_accuracy(ch);
+  diceroll = rand_number(1, 100);
 
   /* report for debugging if necessary */
   if (CONFIG_DEBUG_MODE >= NRM)
-    send_to_char(ch, "\t1Debug:\r\n   \t2Thaco: \t3%d\r\n   \t2AC: \t3%d\r\n   \t2Diceroll: \t3%d\tn\r\n", 
-      calc_thaco, victim_ac, diceroll);
+    send_to_char(ch, "\t1Debug:\r\n   \t2Accuracy: \t3%d\r\n   \t2Armor: \t3%d\r\n   \t2Diceroll: \t3%d\tn\r\n",
+      accuracy, victim_ac, diceroll);
 
-  /* Decide whether this is a hit or a miss.
-   *  Victim asleep = hit, otherwise:
-   *     1   = Automatic miss.
-   *   2..19 = Checked vs. AC.
-   *    20   = Automatic hit. */
-  if (diceroll == 20 || !AWAKE(victim))
+  /* Determine hit or miss */
+  if (!AWAKE(victim)) {
     dam = TRUE;
-  else if (diceroll == 1)
-    dam = FALSE;
-  else
-    dam = (calc_thaco - diceroll <= victim_ac);
+  } else {
+    dam = (diceroll + accuracy >= victim_ac);
+  }
 
   if (!dam)
     /* the attacker missed the victim */
@@ -862,7 +874,7 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
   else {
     /* okay, we know the guy has been hit.  now calculate damage.
      * Start with the damage bonuses: the damroll and strength apply */
-    dam = str_app[STRENGTH_APPLY_INDEX(ch)].todam;
+    dam = GET_STR(ch) / 20;
     dam += GET_DAMROLL(ch);
 
     /* Maybe holding arrow? */

@@ -624,6 +624,8 @@
  * 16k should be plenty and then some. */
 #define MAX_CMD_LENGTH 16384
 
+#define MAX_AC 999
+
 /* Type Definitions */
 typedef signed char sbyte;          /**< 1 byte; vals = -127 to 127 */
 typedef unsigned char ubyte;        /**< 1 byte; vals = 0 to 255 */
@@ -883,13 +885,13 @@ struct char_player_data
  * player strength). */
 struct char_ability_data
 {
-  sbyte str;     /**< Strength.  */
-  sbyte str_add; /**< Strength multiplier if str = 18. Usually from 0 to 100 */
-  sbyte intel;   /**< Intelligence */
-  sbyte wis;     /**< Wisdom */
-  sbyte dex;     /**< Dexterity */
-  sbyte con;     /**< Constitution */
-  sbyte cha;     /**< Charisma */
+  int str;     /**< Strength.  */
+  int str_add; /**< Strength multiplier if str = 18. Usually from 0 to 100 */
+  int intel;   /**< Intelligence */
+  int wis;     /**< Wisdom */
+  int dex;     /**< Dexterity */
+  int con;     /**< Constitution */
+  int cha;     /**< Charisma */
 };
 
 /** Character 'points', or health statistics. */
@@ -907,7 +909,7 @@ struct char_point_data
    * 10 (totally naked). Currently follows the old and decrepit Advanced
    * Dungeons and Dragons method of dealing with character defense, or
    * Armor class. */
-  sh_int armor;
+  int armor;
   long gold;        /**< Current gold carried on character */
   long bank_gold;   /**< Gold the char has in a bank account	*/
   long exp;         /**< The experience points, or value, of the character. */
@@ -1196,46 +1198,6 @@ struct dex_skill_type
   sh_int traps;    /**< Historically alters the success of trap finding. */
   sh_int sneak;    /**< Alters the success of sneaking without being detected */
   sh_int hide;     /**< Alters the success of hiding out of sight */
-};
-
-/** Describes the bonuses applied for a specific value of a character's
- * strength attribute. */
-struct dex_app_type
-{
-  sh_int reaction; /**< Historically affects reaction savings throws. */
-  sh_int miss_att; /**< Historically affects missile attacks */
-  sh_int defensive; /**< Alters character's inherent armor class */
-};
-
-/** Describes the bonuses applied for a specific value of a character's
- * strength attribute. */
-struct str_app_type
-{
-  sh_int tohit; /**< To Hit (THAC0) Bonus/Penalty        */
-  sh_int todam; /**< Damage Bonus/Penalty                */
-  sh_int carry_w; /**< Maximum weight that can be carrried */
-  sh_int wield_w; /**< Maximum weight that can be wielded  */
-};
-
-/** Describes the bonuses applied for a specific value of a character's
- * wisdom attribute. */
-struct wis_app_type
-{
-  byte bonus; /**< how many practices player gains per lev */
-};
-
-/** Describes the bonuses applied for a specific value of a character's
- * intelligence attribute. */
-struct int_app_type
-{
-  byte learn; /**< how many % a player learns a spell/skill */
-};
-
-/** Describes the bonuses applied for a specific value of a
- * character's constitution attribute. */
-struct con_app_type
-{
-  sh_int hitp; /**< Added to a character's new MAXHP at each new level. */
 };
 
 /** Stores, and used to deliver, the current weather information

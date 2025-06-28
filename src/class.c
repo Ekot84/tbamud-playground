@@ -437,7 +437,7 @@ void advance_level(struct char_data *ch)
 {
   int add_hp, add_mana = 0, add_move = 0, i;
 
-  add_hp = con_app[GET_CON(ch)].hitp;
+  add_hp = GET_CON(ch) / 20;
 
   switch (GET_CLASS(ch)) {
 
@@ -474,10 +474,10 @@ void advance_level(struct char_data *ch)
   if (GET_LEVEL(ch) > 1)
     ch->points.max_mana += add_mana;
 
-  if (IS_MAGIC_USER(ch) || IS_CLERIC(ch))
-    GET_PRACTICES(ch) += MAX(2, wis_app[GET_WIS(ch)].bonus);
-  else
-    GET_PRACTICES(ch) += MIN(2, MAX(1, wis_app[GET_WIS(ch)].bonus));
+if (IS_MAGIC_USER(ch) || IS_CLERIC(ch))
+  GET_PRACTICES(ch) += MAX(2, GET_WIS(ch) / 20);
+else
+  GET_PRACTICES(ch) += MIN(2, MAX(1, GET_WIS(ch) / 20));
 
   if (GET_LEVEL(ch) >= LVL_IMMORT) {
     for (i = 0; i < 3; i++)

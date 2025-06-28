@@ -155,7 +155,7 @@ SPECIAL(guild)
   GET_PRACTICES(ch)--;
 
   percent = GET_SKILL(ch, skill_num);
-  percent += MIN(MAXGAIN(ch), MAX(MINGAIN(ch), int_app[GET_INT(ch)].learn));
+  percent += MIN(MAXGAIN(ch), MAX(MINGAIN(ch), GET_INT(ch) / 20));
 
   SET_SKILL(ch, skill_num, MIN(LEARNED(ch), percent));
 

@@ -1396,12 +1396,11 @@ ACMD(do_wield)
 
   if (!*arg)
     send_to_char(ch, "Wield what?\r\n");
-  else if (!(obj = get_obj_in_list_vis(ch, arg, NULL, ch->carrying)))
-    send_to_char(ch, "You don't seem to have %s %s.\r\n", AN(arg), arg);
+  else if (!CAN_WEAR(obj, ITEM_WEAR_WIELD))
+    send_to_char(ch, "You can't wield that.\r\n");
   else {
-    if (!CAN_WEAR(obj, ITEM_WEAR_WIELD))
-      send_to_char(ch, "You can't wield that.\r\n");
-    else if (GET_OBJ_WEIGHT(obj) > str_app[STRENGTH_APPLY_INDEX(ch)].wield_w)
+    int max_wield_weight = 10 + (GET_STR(ch) / 2);
+    if (GET_OBJ_WEIGHT(obj) > max_wield_weight)
       send_to_char(ch, "It's too heavy for you to use.\r\n");
     else if (GET_LEVEL(ch) < GET_OBJ_LEVEL(obj))
       send_to_char(ch, "You are not experienced enough to use that.\r\n");

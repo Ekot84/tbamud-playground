@@ -111,7 +111,7 @@ ACMD(do_sneak)
 
   percent = rand_number(1, 101);	/* 101% is a complete failure */
 
-  if (percent > GET_SKILL(ch, SKILL_SNEAK) + dex_app_skill[GET_DEX(ch)].sneak)
+  if (percent > GET_SKILL(ch, SKILL_SNEAK) + GET_DEX(ch) / 20)
     return;
 
   new_affect(&af);
@@ -137,7 +137,7 @@ ACMD(do_hide)
 
   percent = rand_number(1, 101);	/* 101% is a complete failure */
 
-  if (percent > GET_SKILL(ch, SKILL_HIDE) + dex_app_skill[GET_DEX(ch)].hide)
+  if (percent > GET_SKILL(ch, SKILL_HIDE) + GET_DEX(ch) / 20)
     return;
 
   SET_BIT_AR(AFF_FLAGS(ch), AFF_HIDE);
@@ -170,7 +170,8 @@ ACMD(do_steal)
   }
 
   /* 101% is a complete failure */
-  percent = rand_number(1, 101) - dex_app_skill[GET_DEX(ch)].p_pocket;
+  percent = rand_number(1, 101) - GET_DEX(ch) / 20;
+
 
   if (GET_POS(vict) < POS_SLEEPING)
     percent = -1;		/* ALWAYS SUCCESS, unless heavy object. */

@@ -639,18 +639,8 @@ do                                                              \
 #define GET_DEFAULT_POS(ch)	((ch)->mob_specials.default_pos)
 /** Return the memory of ch. */
 #define MEMORY(ch)		((ch)->mob_specials.memory)
-
-/** Return the equivalent strength of ch if ch has level 18 strength. */
-#define STRENGTH_APPLY_INDEX(ch) \
-        ( ((GET_ADD(ch) ==0) || (GET_STR(ch) != 18)) ? GET_STR(ch) :\
-          (GET_ADD(ch) <= 50) ? 26 :( \
-          (GET_ADD(ch) <= 75) ? 27 :( \
-          (GET_ADD(ch) <= 90) ? 28 :( \
-          (GET_ADD(ch) <= 99) ? 29 :  30 ) ) )                   \
-        )
-
 /** Return how much weight ch can carry. */
-#define CAN_CARRY_W(ch) (str_app[STRENGTH_APPLY_INDEX(ch)].carry_w)
+#define CAN_CARRY_W(ch) (100 + (GET_STR(ch) * 5))
 /** Return how many items ch can carry. */
 #define CAN_CARRY_N(ch) (5 + (GET_DEX(ch) >> 1) + (GET_LEVEL(ch) >> 1))
 /** Return whether or not ch is awake. */

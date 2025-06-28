@@ -1637,7 +1637,7 @@ static void interpret_espec(const char *keyword, const char *value, int i, int n
   }
 
   CASE("Str") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.str = num_arg;
   }
 
@@ -1647,27 +1647,27 @@ static void interpret_espec(const char *keyword, const char *value, int i, int n
   }
 
   CASE("Int") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.intel = num_arg;
   }
 
   CASE("Wis") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.wis = num_arg;
   }
 
   CASE("Dex") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.dex = num_arg;
   }
 
   CASE("Con") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.con = num_arg;
   }
 
   CASE("Cha") {
-    RANGE(3, 25);
+    RANGE(3, 999);
     mob_proto[i].real_abils.cha = num_arg;
   }
 
