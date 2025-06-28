@@ -1607,10 +1607,9 @@ static void parse_simple_mob(FILE *mob_f, int i, int nr)
   GET_WEIGHT(mob_proto + i) = 200;
   GET_HEIGHT(mob_proto + i) = 198;
 
-  /* These are now save applies; base save numbers for MOBs are now from the
-   * warrior save table. */
-  for (j = 0; j < NUM_OF_SAVING_THROWS; j++)
-    GET_SAVE(mob_proto + i, j) = 0;
+
+  GET_MAGIC_RESISTANCE(mob_proto + i) = 0;
+  GET_ELEMENTAL_RESISTANCE(mob_proto + i) = 0;
 }
 
 /* interpret_espec is the function that takes espec keywords and values and
@@ -1672,29 +1671,14 @@ static void interpret_espec(const char *keyword, const char *value, int i, int n
     mob_proto[i].real_abils.cha = num_arg;
   }
 
-  CASE("SavingPara") {
-    RANGE(0, 100);
-    mob_proto[i].char_specials.saved.apply_saving_throw[SAVING_PARA] = num_arg;
+  CASE("MagicResist") {
+    RANGE(0, 999);
+    mob_proto[i].char_specials.saved.magic_resistance = num_arg;
   }
 
-  CASE("SavingRod") {
-    RANGE(0, 100);
-    mob_proto[i].char_specials.saved.apply_saving_throw[SAVING_ROD] = num_arg;
-  }
-
-  CASE("SavingPetri") {
-    RANGE(0, 100);
-    mob_proto[i].char_specials.saved.apply_saving_throw[SAVING_PETRI] = num_arg;
-  }
-
-  CASE("SavingBreath") {
-    RANGE(0, 100);
-    mob_proto[i].char_specials.saved.apply_saving_throw[SAVING_BREATH] = num_arg;
-  }
-
-  CASE("SavingSpell") {
-    RANGE(0, 100);
-    mob_proto[i].char_specials.saved.apply_saving_throw[SAVING_SPELL] = num_arg;
+  CASE("ElementalResist") {
+    RANGE(0, 999);
+    mob_proto[i].char_specials.saved.elemental_resistance = num_arg;
   }
 
   if (!matched) {
@@ -3517,7 +3501,6 @@ void init_char(struct char_data *ch)
     GET_MOVE(ch) = GET_MAX_MOVE(ch);
   }
 
-  set_title(ch, NULL);
   ch->player.short_descr = NULL;
   ch->player.long_descr = NULL;
   ch->player.description = NULL;
@@ -3559,8 +3542,9 @@ void init_char(struct char_data *ch)
   for (i = 0; i < AF_ARRAY_MAX; i++)
     AFF_FLAGS(ch)[i] = 0;
 
-  for (i = 0; i < 5; i++)
-    GET_SAVE(ch, i) = 0;
+  GET_MAGIC_RESISTANCE(ch) = 0;
+  GET_ELEMENTAL_RESISTANCE(ch) = 0;
+
 
   ch->real_abils.intel = 25;
   ch->real_abils.wis = 25;

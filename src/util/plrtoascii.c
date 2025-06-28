@@ -69,7 +69,8 @@ struct char_special_data_saved_plrtoascii {
 
    long /*bitvector_t*/	affected_by;
 				/* Bitvector for spells/skills affected by */
-   sh_int apply_saving_throw[5]; /* Saving throw (Bonuses)		*/
+   int magic_resistance;   /* Magic Resistance */
+   int elemental_resistance; /* Elemental Resistance */
 };
 
 struct player_special_data_saved_plrtoascii {
@@ -227,16 +228,11 @@ void convert(char *filename)
       sprintascii(bits, csds->affected_by);
       fprintf(outfile, "Aff : %s\n", bits);
     }
-    if (csds->apply_saving_throw[0] != PFDEF_SAVETHROW)
-      fprintf(outfile, "Thr1: %d\n", csds->apply_saving_throw[0]);
-    if (csds->apply_saving_throw[1] != PFDEF_SAVETHROW)
-      fprintf(outfile, "Thr2: %d\n", csds->apply_saving_throw[1]);
-    if (csds->apply_saving_throw[2] != PFDEF_SAVETHROW)
-      fprintf(outfile, "Thr3: %d\n", csds->apply_saving_throw[2]);
-    if (csds->apply_saving_throw[3] != PFDEF_SAVETHROW)
-      fprintf(outfile, "Thr4: %d\n", csds->apply_saving_throw[3]);
-    if (csds->apply_saving_throw[4] != PFDEF_SAVETHROW)
-      fprintf(outfile, "Thr5: %d\n", csds->apply_saving_throw[4]);
+  if (csds->magic_resistance != 0)
+    fprintf(outfile, "MagR: %d\n", csds->magic_resistance);
+  if (csds->elemental_resistance != 0)
+    fprintf(outfile, "EleR: %d\n", csds->elemental_resistance);
+
 
 /* player_special_data_saved */
     psds = &(player.player_specials_saved);

@@ -255,8 +255,8 @@ int load_char(const char *name, struct char_data *ch)
     GET_HEIGHT(ch) = PFDEF_HEIGHT;
     GET_WEIGHT(ch) = PFDEF_WEIGHT;
     GET_ALIGNMENT(ch) = PFDEF_ALIGNMENT;
-    for (i = 0; i < NUM_OF_SAVING_THROWS; i++)
-      GET_SAVE(ch, i) = PFDEF_SAVETHROW;
+    GET_MAGIC_RESISTANCE(ch) = 0;
+    GET_ELEMENTAL_RESISTANCE(ch) = 0;
     GET_LOADROOM(ch) = PFDEF_LOADROOM;
     GET_INVIS_LEV(ch) = PFDEF_INVISLEV;
     GET_FREEZE_LEV(ch) = PFDEF_FREEZELEV;
@@ -440,22 +440,23 @@ int load_char(const char *name, struct char_data *ch)
 	break;
 
       case 'T':
-	     if (!strcmp(tag, "Thir"))	GET_COND(ch, THIRST)	= atoi(line);
-	else if (!strcmp(tag, "Thr1"))	GET_SAVE(ch, 0)		= atoi(line);
-	else if (!strcmp(tag, "Thr2"))	GET_SAVE(ch, 1)		= atoi(line);
-	else if (!strcmp(tag, "Thr3"))	GET_SAVE(ch, 2)		= atoi(line);
-	else if (!strcmp(tag, "Thr4"))	GET_SAVE(ch, 3)		= atoi(line);
-	else if (!strcmp(tag, "Thr5"))	GET_SAVE(ch, 4)		= atoi(line);
-	else if (!strcmp(tag, "Titl"))	GET_TITLE(ch)		= strdup(line);
+        if (!strcmp(tag, "Thir"))
+          GET_COND(ch, THIRST) = atoi(line);
+        else if (!strcmp(tag, "Titl"))
+          GET_TITLE(ch) = strdup(line);
         else if (!strcmp(tag, "Trig") && CONFIG_SCRIPT_PLAYERS) {
           if ((t_rnum = real_trigger(atoi(line))) != NOTHING) {
             t = read_trigger(t_rnum);
-          if (!SCRIPT(ch))
-            CREATE(SCRIPT(ch), struct script_data, 1);
-          add_trigger(SCRIPT(ch), t, -1);
+            if (!SCRIPT(ch))
+              CREATE(SCRIPT(ch), struct script_data, 1);
+            add_trigger(SCRIPT(ch), t, -1);
           }
-         }
-	break;
+        }
+        else if (!strcmp(tag, "MagR"))
+          GET_MAGIC_RESISTANCE(ch) = atoi(line);
+        else if (!strcmp(tag, "EleR"))
+          GET_ELEMENTAL_RESISTANCE(ch) = atoi(line);
+        break;
 
       case 'V':
 	     if (!strcmp(tag, "Vars"))	read_saved_vars_ascii(fl, ch, atoi(line));
@@ -611,11 +612,11 @@ void save_char(struct char_data * ch)
   sprintascii(bits4, PRF_FLAGS(ch)[3]);
   fprintf(fl, "Pref: %s %s %s %s\n", bits, bits2, bits3, bits4);
 
- if (GET_SAVE(ch, 0)	   != PFDEF_SAVETHROW)	fprintf(fl, "Thr1: %d\n", GET_SAVE(ch, 0));
-  if (GET_SAVE(ch, 1)	   != PFDEF_SAVETHROW)	fprintf(fl, "Thr2: %d\n", GET_SAVE(ch, 1));
-  if (GET_SAVE(ch, 2)	   != PFDEF_SAVETHROW)	fprintf(fl, "Thr3: %d\n", GET_SAVE(ch, 2));
-  if (GET_SAVE(ch, 3)	   != PFDEF_SAVETHROW)	fprintf(fl, "Thr4: %d\n", GET_SAVE(ch, 3));
-  if (GET_SAVE(ch, 4)	   != PFDEF_SAVETHROW)	fprintf(fl, "Thr5: %d\n", GET_SAVE(ch, 4));
+  if (GET_MAGIC_RESISTANCE(ch) != 0)
+    fprintf(fl, "MagR: %d\n", GET_MAGIC_RESISTANCE(ch));
+  if (GET_ELEMENTAL_RESISTANCE(ch) != 0)
+    fprintf(fl, "EleR: %d\n", GET_ELEMENTAL_RESISTANCE(ch));
+
 
   if (GET_WIMP_LEV(ch)	   != PFDEF_WIMPLEV)	fprintf(fl, "Wimp: %d\n", GET_WIMP_LEV(ch));
   if (GET_FREEZE_LEV(ch)   != PFDEF_FREEZELEV)	fprintf(fl, "Frez: %d\n", GET_FREEZE_LEV(ch));

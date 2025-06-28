@@ -176,7 +176,7 @@ int find_skill_num(char *name) {
  * ignored here, to make callers simpler. */
 int call_magic(struct char_data *caster, struct char_data *cvict,
     struct obj_data *ovict, int spellnum, int level, int casttype) {
-  int savetype;
+
 
   if (spellnum < 1 || spellnum > TOP_SPELL_DEFINE)
     return (0);
@@ -202,49 +202,35 @@ int call_magic(struct char_data *caster, struct char_data *cvict,
     send_to_char(caster, "This mob is protected.\r\n");
     return (0);
   }
-  /* determine the type of saving throw */
-  switch (casttype) {
-  case CAST_STAFF:
-  case CAST_SCROLL:
-  case CAST_POTION:
-  case CAST_WAND:
-    savetype = SAVING_ROD;
-    break;
-  case CAST_SPELL:
-    savetype = SAVING_SPELL;
-    break;
-  default:
-    savetype = SAVING_BREATH;
-    break;
-  }
 
   if (IS_SET(SINFO.routines, MAG_DAMAGE))
-    if (mag_damage(level, caster, cvict, spellnum, savetype) == -1)
+    if (mag_damage(level, caster, cvict, spellnum, 0) == -1)
       return (-1); /* Successful and target died, don't cast again. */
 
-  if (IS_SET(SINFO.routines, MAG_AFFECTS))
-    mag_affects(level, caster, cvict, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_AFFECTS))
+  mag_affects(level, caster, cvict, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_UNAFFECTS))
-    mag_unaffects(level, caster, cvict, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_UNAFFECTS))
+  mag_unaffects(level, caster, cvict, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_POINTS))
-    mag_points(level, caster, cvict, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_POINTS))
+  mag_points(level, caster, cvict, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_ALTER_OBJS))
-    mag_alter_objs(level, caster, ovict, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_ALTER_OBJS))
+  mag_alter_objs(level, caster, ovict, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_GROUPS))
-    mag_groups(level, caster, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_GROUPS))
+  mag_groups(level, caster, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_MASSES))
-    mag_masses(level, caster, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_MASSES))
+  mag_masses(level, caster, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_AREAS))
-    mag_areas(level, caster, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_AREAS))
+  mag_areas(level, caster, spellnum, 0);
 
-  if (IS_SET(SINFO.routines, MAG_SUMMONS))
-    mag_summons(level, caster, ovict, spellnum, savetype);
+if (IS_SET(SINFO.routines, MAG_SUMMONS))
+  mag_summons(level, caster, ovict, spellnum, 0);
+
 
   if (IS_SET(SINFO.routines, MAG_CREATIONS))
     mag_creations(level, caster, spellnum);

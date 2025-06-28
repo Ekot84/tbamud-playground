@@ -985,58 +985,39 @@ void find_replacement(void *go, struct script_data *sc, trig_data *trig,
                    strcpy(str, "0");
                }
                else
-                 strcpy(str, "0");
-             }
-          break;
+                strcpy(str, "0");
+            }
+            break;
+
         case 'r':
-          if (!str_cmp(field, "room")) {  /* in NOWHERE, return the void */
-/* see note in dg_scripts.h */
+            if (!str_cmp(field, "room")) {
 #ifdef ACTOR_ROOM_IS_UID
-            snprintf(str, slen, "%c%ld",UID_CHAR,
-               (IN_ROOM(c)!= NOWHERE) ? room_script_id(world + IN_ROOM(c)) : ROOM_ID_BASE);
+                snprintf(str, slen, "%c%ld", UID_CHAR,
+                         (IN_ROOM(c) != NOWHERE) ? room_script_id(world + IN_ROOM(c)) : ROOM_ID_BASE);
 #else
-            snprintf(str, slen, "%d", (IN_ROOM(c)!= NOWHERE) ? world[IN_ROOM(c)].number : 0);
+                snprintf(str, slen, "%d",
+                         (IN_ROOM(c) != NOWHERE) ? world[IN_ROOM(c)].number : 0);
 #endif
-          }
-          break;
+            }
+            else if (!str_cmp(field, "magic_resist")) {
+                if (subfield && *subfield) {
+                    int addition = atoi(subfield);
+                    GET_MAGIC_RESISTANCE(c) += addition;
+                }
+                snprintf(str, slen, "%d", GET_MAGIC_RESISTANCE(c));
+            }
+            else if (!str_cmp(field, "elemental_resist")) {
+                if (subfield && *subfield) {
+                    int addition = atoi(subfield);
+                    GET_ELEMENTAL_RESISTANCE(c) += addition;
+                }
+                snprintf(str, slen, "%d", GET_ELEMENTAL_RESISTANCE(c));
+            }
+            break;
+
         case 's':
-          if (!str_cmp(field, "saving_breath")) {
-            if (subfield && *subfield) {
-              int addition = atoi(subfield);
-              GET_SAVE(c, SAVING_BREATH) += addition;
-            }
-            snprintf(str, slen, "%d", GET_SAVE(c, SAVING_BREATH));
-          }
-          else if (!str_cmp(field, "saving_para")) {
-            if (subfield && *subfield) {
-              int addition = atoi(subfield);
-              GET_SAVE(c, SAVING_PARA) += addition;
-            }
-            snprintf(str, slen, "%d", GET_SAVE(c, SAVING_PARA));
-          }
-          else if (!str_cmp(field, "saving_petri")) {
-            if (subfield && *subfield) {
-              int addition = atoi(subfield);
-              GET_SAVE(c, SAVING_PETRI) += addition;
-            }
-            snprintf(str, slen, "%d", GET_SAVE(c, SAVING_PETRI));
-          }
-          else if (!str_cmp(field, "saving_rod")) {
-            if (subfield && *subfield) {
-              int addition = atoi(subfield);
-              GET_SAVE(c, SAVING_ROD) += addition;
-            }
-            snprintf(str, slen, "%d", GET_SAVE(c, SAVING_ROD));
-          }
-          else if (!str_cmp(field, "saving_spell")) {
-            if (subfield && *subfield) {
-              int addition = atoi(subfield);
-              GET_SAVE(c, SAVING_SPELL) += addition;
-            }
-            snprintf(str, slen, "%d", GET_SAVE(c, SAVING_SPELL));
-          }
-          else if (!str_cmp(field, "sex"))
-            snprintf(str, slen, "%s", genders[(int)GET_SEX(c)]);
+            if (!str_cmp(field, "sex"))
+                snprintf(str, slen, "%s", genders[(int)GET_SEX(c)]);
           else if (!str_cmp(field, "skill"))
             snprintf(str, slen, "%s", skill_percent(c, subfield));
           else if (!str_cmp(field, "skillset")) {

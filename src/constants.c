@@ -478,11 +478,8 @@ const char *apply_types[] = {
   "ARMOR",
   "HITROLL",
   "DAMROLL",
-  "SAVING_PARA",
-  "SAVING_ROD",
-  "SAVING_PETRI",
-  "SAVING_BREATH",
-  "SAVING_SPELL",
+  "MAGIC_RESISTANCE",
+  "ELEMENTAL_RESISTANCE",
   "\n"
 };
 

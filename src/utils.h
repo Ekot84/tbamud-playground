@@ -549,8 +549,10 @@ do                                                              \
 #define FIGHTING(ch)	  ((ch)->char_specials.fighting)
 /** Who or what the ch is hunting. */
 #define HUNTING(ch)	  ((ch)->char_specials.hunting)
-/** Saving throw i for character ch. */
-#define GET_SAVE(ch, i)	  ((ch)->char_specials.saved.apply_saving_throw[i])
+/** Magic Resistance */
+#define GET_MAGIC_RESISTANCE(ch) ((ch)->char_specials.saved.magic_resistance)
+/** Elemental Resistance */
+#define GET_ELEMENTAL_RESISTANCE(ch) ((ch)->char_specials.saved.elemental_resistance)
 /** Alignment value for ch. */
 #define GET_ALIGNMENT(ch) ((ch)->char_specials.saved.alignment)
 

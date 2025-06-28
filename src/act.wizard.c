@@ -847,10 +847,13 @@ static void do_stat_character(struct char_data *ch, struct char_data *k)
                       CCCYN(ch, C_NRM), CCYEL(ch, C_NRM), GET_SCREEN_WIDTH(k), CCNRM(ch, C_NRM),
                       CCYEL(ch, C_NRM), GET_PAGE_LENGTH(k), CCCYN(ch, C_NRM), CCNRM(ch, C_NRM));
 
-  send_to_char(ch, "AC: [%d%+d/10], Hitroll: [%2d], Damroll: [%2d], Saving throws: [%d/%d/%d/%d/%d]\r\n",
-	  GET_AC(k), dex_app[GET_DEX(k)].defensive, k->points.hitroll,
-	  k->points.damroll, GET_SAVE(k, 0), GET_SAVE(k, 1), GET_SAVE(k, 2),
-	  GET_SAVE(k, 3), GET_SAVE(k, 4));
+  send_to_char(ch, 
+    "AC: [%d%+d/10], Hitroll: [%2d], Damroll: [%2d], Magic Resist: [%d/999], Elemental Resist: [%d/999]\r\n",
+    GET_AC(k), dex_app[GET_DEX(k)].defensive,
+    k->points.hitroll,
+    k->points.damroll,
+    GET_MAGIC_RESISTANCE(k),
+    GET_ELEMENTAL_RESISTANCE(k));
 
   sprinttype(GET_POS(k), position_types, buf, sizeof(buf));
   send_to_char(ch, "Pos: %s, Fighting: %s", buf, FIGHTING(k) ? GET_NAME(FIGHTING(k)) : "Nobody");
@@ -3563,11 +3566,8 @@ static struct zcheck_affs {
   {APPLY_AC,         -10,  10, "magical AC"},
   {APPLY_HITROLL,      0, -99, "hitroll"},       /* Handled seperately below */
   {APPLY_DAMROLL,      0, -99, "damroll"},       /* Handled seperately below */
-  {APPLY_SAVING_PARA, -2,   2, "saving throw (paralysis)"},
-  {APPLY_SAVING_ROD,  -2,   2, "saving throw (rod)"},
-  {APPLY_SAVING_PETRI,-2,   2, "saving throw (death)"},
-  {APPLY_SAVING_BREATH,-2,  2, "saving throw (breath)"},
-  {APPLY_SAVING_SPELL,-2,   2, "saving throw (spell)"}
+  {APPLY_MAGIC_RESISTANCE, 0,   999, "Magic Resistance"},
+  {APPLY_ELEMENTAL_RESISTANCE,  0,   99, "Elemental Resistance"}
 };
 
 /* These are ABS() values. */

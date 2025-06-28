@@ -149,12 +149,6 @@
 /* new attack types can be added here - up to TYPE_SUFFERING */
 #define TYPE_SUFFERING		     399
 
-#define SAVING_PARA   0
-#define SAVING_ROD    1
-#define SAVING_PETRI  2
-#define SAVING_BREATH 3
-#define SAVING_SPELL  4
-
 /***
  **Possible Targets:
  **  TAR_IGNORE    : IGNORE TARGET.
@@ -276,7 +270,7 @@ void init_spell_levels(void);
 const char *skill_name(int num);
 
 /* From magic.c */
-int mag_savingthrow(struct char_data *ch, int type, int modifier);
+int mag_savingthrow(struct char_data *ch);
 void affect_update(void);
 
 /* from spell_parser.c */

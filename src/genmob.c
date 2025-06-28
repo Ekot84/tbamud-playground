@@ -343,16 +343,10 @@ int write_mobile_espec(mob_vnum mvnum, struct char_data *mob, FILE *fd)
     fprintf(fd, "Con: %d\n", GET_CON(mob));
   if (GET_CHA(mob) != 11)
     fprintf(fd, "Cha: %d\n", GET_CHA(mob));
-  if (GET_SAVE(mob, SAVING_PARA) != 0)
-    fprintf(fd, "SavingPara: %d\n", GET_SAVE(mob, SAVING_PARA));
-  if (GET_SAVE(mob, SAVING_ROD) != 0)
-    fprintf(fd, "SavingRod: %d\n", GET_SAVE(mob, SAVING_ROD));
-  if (GET_SAVE(mob, SAVING_PETRI) != 0)
-    fprintf(fd, "SavingPetri: %d\n", GET_SAVE(mob, SAVING_PETRI));
-  if (GET_SAVE(mob, SAVING_BREATH) != 0)
-    fprintf(fd, "SavingBreath: %d\n", GET_SAVE(mob, SAVING_BREATH));
-  if (GET_SAVE(mob, SAVING_SPELL) != 0)
-    fprintf(fd, "SavingSpell: %d\n", GET_SAVE(mob, SAVING_SPELL));
+  if (GET_MAGIC_RESISTANCE(mob) != 0)
+    fprintf(fd, "MagicResist: %d\n", GET_MAGIC_RESISTANCE(mob));
+  if (GET_ELEMENTAL_RESISTANCE(mob) != 0)
+    fprintf(fd, "ElementalResist: %d\n", GET_ELEMENTAL_RESISTANCE(mob));
   fputs("E\n", fd);
   return TRUE;
 }

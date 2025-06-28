@@ -178,24 +178,12 @@ static void aff_apply_modify(struct char_data *ch, byte loc, sbyte mod, char *ms
     GET_DAMROLL(ch) += mod;
     break;
 
-  case APPLY_SAVING_PARA:
-    GET_SAVE(ch, SAVING_PARA) += mod;
+  case APPLY_MAGIC_RESISTANCE:
+    GET_MAGIC_RESISTANCE(ch) += mod;
     break;
 
-  case APPLY_SAVING_ROD:
-    GET_SAVE(ch, SAVING_ROD) += mod;
-    break;
-
-  case APPLY_SAVING_PETRI:
-    GET_SAVE(ch, SAVING_PETRI) += mod;
-    break;
-
-  case APPLY_SAVING_BREATH:
-    GET_SAVE(ch, SAVING_BREATH) += mod;
-    break;
-
-  case APPLY_SAVING_SPELL:
-    GET_SAVE(ch, SAVING_SPELL) += mod;
+  case APPLY_ELEMENTAL_RESISTANCE:
+    GET_ELEMENTAL_RESISTANCE(ch) += mod;
     break;
 
   default:

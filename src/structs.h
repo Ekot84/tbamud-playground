@@ -462,16 +462,10 @@
 #define APPLY_AC               17	/**< Apply to Armor Class		*/
 #define APPLY_HITROLL          18	/**< Apply to hitroll		*/
 #define APPLY_DAMROLL          19	/**< Apply to damage roll		*/
-#define APPLY_SAVING_PARA      20	/**< Apply to save throw: paralysis	*/
-#define APPLY_SAVING_ROD       21	/**< Apply to save throw: rods	*/
-#define APPLY_SAVING_PETRI     22	/**< Apply to save throw: petrif	*/
-#define APPLY_SAVING_BREATH    23	/**< Apply to save throw: breath	*/
-#define APPLY_SAVING_SPELL     24	/**< Apply to save throw: spells	*/
+#define APPLY_MAGIC_RESISTANCE  20	/**< Apply to save throw: paralysis	*/
+#define APPLY_ELEMENTAL_RESISTANCE       21	/**< Apply to save throw: rods	*/
 /** Total number of applies */
-#define NUM_APPLIES   25
-
-/* Equals the total number of SAVING_* defines in spells.h */
-#define NUM_OF_SAVING_THROWS  5
+#define NUM_APPLIES   22
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/
@@ -930,7 +924,8 @@ struct char_special_data_saved
   long idnum;            /**< PC's idnum; -1 for mobiles. */
   int act[PM_ARRAY_MAX]; /**< act flags for NPC's; player flag for PC's */
   int affected_by[AF_ARRAY_MAX]; /**< Bitvector for spells/skills affected by */
-  sh_int apply_saving_throw[5];  /**< Saving throw (Bonuses)		*/
+  int magic_resistance;
+  int elemental_resistance;
 };
 
 /** Special playing constants shared by PCs and NPCs which aren't in pfile */

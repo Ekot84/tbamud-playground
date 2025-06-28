@@ -29,29 +29,12 @@ static int mag_materials(struct char_data *ch, IDXTYPE item0, IDXTYPE item1, IDX
 static void perform_mag_groups(int level, struct char_data *ch, struct char_data *tch, int spellnum, int savetype);
 
 
-/* Negative apply_saving_throw[] values make saving throws better! So do
- * negative modifiers.  Though people may be used to the reverse of that.
- * It's due to the code modifying the target saving throw instead of the
- * random number of the character as in some other systems. */
-int mag_savingthrow(struct char_data *ch, int type, int modifier)
+// Changed for new magic resistance and elemental resistance
+int mag_savingthrow(struct char_data *ch)
 {
-  /* NPCs use warrior tables according to some book */
-  int class_sav = CLASS_WARRIOR;
-  int save;
-
-  if (!IS_NPC(ch))
-    class_sav = GET_CLASS(ch);
-
-  save = saving_throws(class_sav, type, GET_LEVEL(ch));
-  save += GET_SAVE(ch, type);
-  save += modifier;
-
-  /* Throwing a 0 is always a failure. */
-  if (MAX(1, save) < rand_number(0, 99))
-    return (TRUE);
-
-  /* Oops, failed. Sorry. */
-  return (FALSE);
+  if (rand_number(0, 999) < GET_MAGIC_RESISTANCE(ch))
+    return TRUE;
+  return FALSE;
 }
 
 /* affect_update: called from comm.c (causes spells to wear off) */
@@ -287,7 +270,7 @@ int mag_damage(int level, struct char_data *ch, struct char_data *victim,
 
 
   /* divide damage by two if victim makes his saving throw */
-  if (mag_savingthrow(victim, savetype, 0))
+  if (mag_savingthrow(victim))
     dam /= 2;
 
   /* and finally, inflict the damage */
@@ -321,7 +304,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
 
   case SPELL_CHILL_TOUCH:
     af[0].location = APPLY_STR;
-    if (mag_savingthrow(victim, savetype, 0))
+    if (mag_savingthrow(victim))
       af[0].duration = 1;
     else
       af[0].duration = 4;
@@ -343,7 +326,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     af[0].modifier = 2;
     af[0].duration = 6;
 
-    af[1].location = APPLY_SAVING_SPELL;
+    af[1].location = APPLY_MAGIC_RESISTANCE;
     af[1].modifier = -1;
     af[1].duration = 6;
 
@@ -352,7 +335,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     break;
 
   case SPELL_BLINDNESS:
-    if (MOB_FLAGGED(victim, MOB_NOBLIND) || GET_LEVEL(victim) >= LVL_IMMORT || mag_savingthrow(victim, savetype, 0)) {
+    if (MOB_FLAGGED(victim, MOB_NOBLIND) || GET_LEVEL(victim) >= LVL_IMMORT || mag_savingthrow(victim)) {
       send_to_char(ch, "You fail.\r\n");
       return;
     }
@@ -372,7 +355,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     break;
 
   case SPELL_CURSE:
-    if (mag_savingthrow(victim, savetype, 0)) {
+    if (mag_savingthrow(victim)) {
       send_to_char(ch, "%s", CONFIG_NOEFFECT);
       return;
     }
@@ -443,7 +426,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     break;
 
   case SPELL_POISON:
-    if (mag_savingthrow(victim, savetype, 0)) {
+    if (mag_savingthrow(victim)) {
       send_to_char(ch, "%s", CONFIG_NOEFFECT);
       return;
     }
@@ -477,7 +460,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
       return;
     if (MOB_FLAGGED(victim, MOB_NOSLEEP))
       return;
-    if (mag_savingthrow(victim, savetype, 0))
+    if (mag_savingthrow(victim))
       return;
 
     af[0].duration = 4 + (GET_LEVEL(ch) / 4);
