@@ -1289,6 +1289,15 @@ void find_replacement(void *go, struct script_data *sc, trig_data *trig,
           else if (!str_cmp(field, "timer"))
             snprintf(str, slen, "%d", GET_OBJ_TIMER(o));
           break;
+        case 'u':
+          if (!str_cmp(field, "uniqueid")) {
+            if (subfield && *subfield) {
+              snprintf(str, slen, "%lld", (long long int)(GET_OBJ_UID(o) == atoi(subfield)));
+            } else {
+              snprintf(str, slen, "%lld", GET_OBJ_UID(o));
+            }
+          }
+          break;  
         case 'v':
           if (!str_cmp(field, "vnum"))
             if (subfield && *subfield) {

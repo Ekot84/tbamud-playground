@@ -38,6 +38,7 @@
 #include "mud_event.h"
 #include "msgedit.h"
 #include "screen.h"
+#include "htree.h"
 #include <sys/stat.h>
 
 /*  declarations of most of the 'global' variables */
@@ -112,6 +113,13 @@ struct help_index_element *help_table = NULL;
 
 struct social_messg *soc_mess_list = NULL;      /* list of socials */
 int top_of_socialt = -1;                        /* number of socials */
+
+/* HTREE defines */
+struct htree_node *room_htree = NULL;
+struct htree_node *mob_htree = NULL;
+struct htree_node *obj_htree = NULL;
+void   free_obj_unique_hash();
+void   init_obj_unique_hash();
 
 time_t newsmod; /* Time news file was last modified. */
 time_t motdmod; /* Time motd file was last modified. */
@@ -565,6 +573,7 @@ void destroy_db(void)
   }
   free(world);
   top_of_world = 0;
+  htree_free(room_htree);
 
   /* Objects */
   for (cnt = 0; cnt <= top_of_objt; cnt++) {
@@ -583,6 +592,7 @@ void destroy_db(void)
   }
   free(obj_proto);
   free(obj_index);
+  htree_free(obj_htree);
 
   /* Mobiles */
   for (cnt = 0; cnt <= top_of_mobt; cnt++) {
@@ -605,6 +615,7 @@ void destroy_db(void)
   }
   free(mob_proto);
   free(mob_index);
+  htree_free(mob_htree);
 
   /* Shops */
   destroy_shops();
@@ -668,10 +679,34 @@ void destroy_db(void)
     free(trig_index[cnt]);
   }
   free(trig_index);
+  free_obj_unique_hash();
 
+  /* Htree shutdown */
+  htree_shutdown(); 
   /* Events */
   event_free_all();
 
+}
+
+/* You can define this to anything you want; 1 would work but it would
+   be very inefficient. I would recommend that it actually be close to
+   your total number of in-game objects if not double or triple it just
+   to minimize collisions. The only O(n) [n=NUM_OBJ_UNIQUE_POOLS]
+   operation is initialization of the hash table, all other operations
+   that have to traverse are O(n) [n=num elements in pool], so more
+   pools are better.
+     - Elie Rosenblum Dec. 12 2003 - Cunning updated 2015 */
+#define NUM_OBJ_UNIQUE_POOLS 10000
+
+struct obj_unique_hash_elem **obj_unique_hash_pools = NULL;
+
+void init_obj_unique_hash()
+{
+  int i;
+  CREATE(obj_unique_hash_pools, struct obj_unique_hash_elem *, NUM_OBJ_UNIQUE_POOLS);
+  for (i = 0; i < NUM_OBJ_UNIQUE_POOLS; i++) {
+    obj_unique_hash_pools[i] = NULL;
+  }
 }
 
 /* body of the booting system */
@@ -712,6 +747,8 @@ void boot_db(void)
 
   boot_world();
 
+  htree_test();
+
   log("Loading help entries.");
   index_boot(DB_BOOT_HLP);
 
@@ -746,6 +783,9 @@ void boot_db(void)
     log("   Questmasters.");
     assign_the_quests();
   }
+
+  log("Init Object Unique Hash");
+  init_obj_unique_hash();
 
   log("Assigning spell and skill levels.");
   init_spell_levels();
@@ -1284,6 +1324,10 @@ void parse_room(FILE *fl, int virtual_nr)
   world[room_nr].name = fread_string(fl, buf2);
   world[room_nr].description = fread_string(fl, buf2);
 
+  if (!room_htree)
+      room_htree = htree_init();
+  htree_add(room_htree, virtual_nr, room_nr);
+
   if (!get_line(fl, line)) {
     log("SYSERR: Expecting roomflags/sector type of room #%d but file ended!",
 	virtual_nr);
@@ -1736,6 +1780,10 @@ void parse_mobile(FILE *mob_f, int nr)
 
   clear_char(mob_proto + i);
 
+  if (! mob_htree)
+     mob_htree = htree_init();
+  htree_add(mob_htree, nr, i);
+
   /* Mobiles should NEVER use anything in the 'player_specials' structure.
    * The only reason we have every mob in the game share this copy of the
    * structure is to save newbie coders from themselves. -gg */
@@ -1882,6 +1930,10 @@ char *parse_object(FILE *obj_f, int nr)
   obj_index[i].vnum = nr;
   obj_index[i].number = 0;
   obj_index[i].func = NULL;
+
+  if (!obj_htree)
+    obj_htree = htree_init();
+  htree_add(obj_htree, nr, i);
 
   clear_object(obj_proto + i);
   obj_proto[i].item_number = i;
@@ -2467,6 +2519,9 @@ struct obj_data *create_obj(void)
 
   obj->script_id = 0;	// this is set later by obj_script_id
 
+  GET_OBJ_GENERATION(obj) = time(0);
+  add_unique_id(obj);
+
   return (obj);
 }
 
@@ -2492,6 +2547,9 @@ struct obj_data *read_object(obj_vnum nr, int type) /* and obj_rnum */
   obj_index[i].number++;
 
   obj->script_id = 0;	// this is set later by obj_script_id
+
+  GET_OBJ_GENERATION(obj) = time(0);
+  add_unique_id(obj);
 
   copy_proto_script(&obj_proto[i], obj, OBJ_TRIGGER);
   assign_triggers(obj, OBJ_TRIGGER);
@@ -3196,6 +3254,188 @@ void fread_to_eol(FILE *fp)
   ungetc( c, fp );
 }
 
+/* Added by Cunning for Obj Tracking and Obj Uniqueness. 4/8/10 */
+
+struct obj_unique_hash_elem {
+  time_t generation;
+  long long unique_id;
+  struct obj_data *obj;
+  struct obj_unique_hash_elem *next_e;
+};
+
+void free_obj_unique_hash()
+{
+  int i;
+  struct obj_unique_hash_elem *elem;
+  struct obj_unique_hash_elem *next_elem;
+
+  if (obj_unique_hash_pools) {
+    for (i = 0; i < NUM_OBJ_UNIQUE_POOLS; i++) {
+      elem = obj_unique_hash_pools[i];
+      while (elem) {
+        next_elem = elem->next_e;
+        if (elem->obj)
+          free(elem->obj);
+        free(elem);
+        elem = next_elem;
+      }
+    }
+    free(obj_unique_hash_pools);
+  }
+}
+
+void add_unique_id(struct obj_data *obj)
+{
+  struct obj_unique_hash_elem *elem = NULL;
+  int i;
+  
+  if (!obj_unique_hash_pools)
+    init_obj_unique_hash();
+
+  if (sizeof(long long) > sizeof(long))
+    obj->unique_id = (((long long)circle_random()) << (sizeof(long long) * 4)) + circle_random();
+  else
+    obj->unique_id = circle_random();
+  
+  if (obj->unique_id < 0)
+     obj->unique_id = 0 - obj->unique_id;
+    
+  if (CONFIG_ALL_ITEMS_UNIQUE) {
+    if (!IS_SET_AR(GET_OBJ_EXTRA(obj), ITEM_UNIQUE_SAVE))
+     SET_BIT_AR(GET_OBJ_EXTRA(obj), ITEM_UNIQUE_SAVE);
+  }
+               
+  CREATE(elem, struct obj_unique_hash_elem, 1);
+  elem->generation = obj->generation;
+  elem->unique_id = obj->unique_id;
+  elem->obj = obj;
+  i = obj->unique_id % NUM_OBJ_UNIQUE_POOLS;
+  elem->next_e = obj_unique_hash_pools[i];
+  obj_unique_hash_pools[i] = elem;
+}
+
+void remove_unique_id(struct obj_data *obj)
+{
+  struct obj_unique_hash_elem *elem, **ptr, *tmp;
+
+  ptr = obj_unique_hash_pools + (obj->unique_id % NUM_OBJ_UNIQUE_POOLS);
+
+  if (!(ptr && *ptr))
+    return;
+
+  elem = *ptr;
+
+  while (elem) {
+    tmp = elem->next_e;
+    if (elem->obj == obj) {
+      free(elem);
+      *ptr = tmp;
+    } else {
+      ptr = &(elem->next_e);
+    } 
+    elem = tmp;
+  }
+}
+void log_dupe_objects(struct obj_data *obj1, struct obj_data *obj2)
+{
+  if (!obj1 || !obj2)
+    return;
+  
+  mudlog(BRF, LVL_GRGOD, TRUE, "DUPE: Dupe object found: %s [%d] [%ld:%lld]", 
+        obj1->short_description ? obj1->short_description : "<No name>",
+        obj_index[obj1->item_number].vnum, GET_OBJ_GENERATION(obj1), GET_OBJ_UID(obj1));
+
+  mudlog(BRF, LVL_GRGOD, TRUE, "DUPE: First: In room: %d (%s), "
+                             "In object: %s, Carried by: %s, Worn by: %s",
+        IN_ROOM(obj1) != NOWHERE ? world[IN_ROOM(obj1)].number : NOWHERE,
+        IN_ROOM(obj1) == NOWHERE ? "Nowhere" : world[IN_ROOM(obj1)].name,
+        obj1->in_obj ? obj1->in_obj->short_description : "None",
+        obj1->carried_by ? GET_NAME(obj1->carried_by) : "Nobody",
+        obj1->worn_by ? GET_NAME(obj1->worn_by) : "Nobody");
+
+
+   mudlog(BRF, LVL_GRGOD, TRUE, "DUPE: (deleted) Newer: In room: %d (%s), "
+                             "In object: %s, Carried by: %s, Worn by: %s",
+        IN_ROOM(obj2) != NOWHERE ? world[IN_ROOM(obj2)].number : NOWHERE,
+        IN_ROOM(obj2) == NOWHERE ? "Nowhere" : world[IN_ROOM(obj2)].name,
+        obj2->in_obj ? obj2->in_obj->short_description : "None",
+        obj2->carried_by ? GET_NAME(obj2->carried_by) : "Nobody",
+        obj2->worn_by ? GET_NAME(obj2->worn_by) : "Nobody");
+        
+   if (obj2->carried_by || obj2->worn_by)
+     send_to_char(obj2->carried_by ? obj2->carried_by : obj2->worn_by, 
+               "A Duplicate ITEM was found on your character. We have now deleted this item. Please see an Admin if you have any questions.");
+}
+
+int check_unique_id(struct obj_data *obj)
+{
+  struct obj_unique_hash_elem *elem;
+
+  if (obj == NULL || obj->unique_id <= 0)
+    return FALSE;
+
+  elem = obj_unique_hash_pools[obj->unique_id % NUM_OBJ_UNIQUE_POOLS];
+  while (elem) {
+    if (elem->obj == obj) {
+      log("SYSERR: check_unique_id checking for existing object?!");
+    }
+    if (GET_OBJ_VNUM(elem->obj) == GET_OBJ_VNUM(obj))
+      if (elem->generation == obj->generation && elem->unique_id == obj->unique_id) {
+       log_dupe_objects(elem->obj, obj);
+       return TRUE;
+      }
+    elem = elem->next_e;
+  }
+ return FALSE;
+}
+
+char *sprintuniques(int low, int high)
+{
+  int i, count = 0, remain, header;
+  struct obj_unique_hash_elem *q;
+  char *str, *ptr;
+  remain = 40;
+  for (i = 0; i < NUM_OBJ_UNIQUE_POOLS; i++) {
+    q = obj_unique_hash_pools[i];
+    remain += 40;
+    while (q) {
+      count++;
+      remain += 80 + (q->obj->short_description ? strlen(q->obj->short_description) : 20);
+      q = q->next_e;
+    }
+  }
+  if (count < 1) {
+    return strdup("No objects in unique hash.\r\n");
+  }
+  CREATE(str, char, remain + 1);
+  ptr = str;
+  count = snprintf(ptr, remain, "Unique object hashes (vnums %d - %d)\r\n",
+                low, high);
+  ptr += count;
+  remain -= count;
+  for (i = 0; i < NUM_OBJ_UNIQUE_POOLS; i++) {
+    header = 0;
+    q = obj_unique_hash_pools[i];
+    while (q) {
+      if (GET_OBJ_VNUM(q->obj) >= low && GET_OBJ_VNUM(q->obj) <= high) {
+        if (!header) {
+          header = 1;
+          count = snprintf(ptr, remain, "|-Hash %d\r\n", i);
+          ptr += count;
+          remain -= count;
+        }
+        count = snprintf(ptr, remain, "| |- [\tg%6d\tn] - [\ty%10ld:%-19lld\tn] - %s\r\n",
+                GET_OBJ_VNUM(q->obj), q->generation, q->unique_id,
+                q->obj->short_description ? q->obj->short_description : "<Unknown>");
+        ptr += count;
+        remain -= count;
+      }
+      q = q->next_e;
+    }
+  }
+  return str;
+}
+
 /* Called to free all allocated follow_type structs */
 static void free_followers(struct follow_type *k)
 {
@@ -3306,6 +3546,7 @@ void free_char(struct char_data *ch)
 /* release memory allocated for an obj struct */
 void free_obj(struct obj_data *obj)
 {
+  remove_unique_id(obj);
   if (GET_OBJ_RNUM(obj) == NOWHERE) {
     free_object_strings(obj);
     /* free script proto list */
@@ -3546,13 +3787,13 @@ void init_char(struct char_data *ch)
   GET_ELEMENTAL_RESISTANCE(ch) = 0;
 
 
-  ch->real_abils.intel = 25;
-  ch->real_abils.wis = 25;
-  ch->real_abils.dex = 25;
-  ch->real_abils.str = 25;
+  ch->real_abils.intel = 999;
+  ch->real_abils.wis = 999;
+  ch->real_abils.dex = 999;
+  ch->real_abils.str = 999;
   ch->real_abils.str_add = 100;
-  ch->real_abils.con = 25;
-  ch->real_abils.cha = 25;
+  ch->real_abils.con = 999;
+  ch->real_abils.cha = 999;
 
   for (i = 0; i < 3; i++)
     GET_COND(ch, i) = (GET_LEVEL(ch) == LVL_IMPL ? -1 : 24);
@@ -3576,78 +3817,122 @@ void init_char(struct char_data *ch)
 /* returns the real number of the room with given virtual number */
 room_rnum real_room(room_vnum vnum)
 {
-  room_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_world;
+  room_rnum bot, top, mid, i, last_top;
+      
+  if (vnum == NOWHERE)
+    return NOWHERE;
+  
+  i = htree_find(room_htree, vnum);
+  
+  if (i != NOWHERE && world[i].number == vnum)
+    return i;
+  else {
+    bot = 0;
+    top = top_of_world;
 
   if (world[bot].number > vnum || world[top].number < vnum)
     return (NOWHERE);
 
   /* perform binary search on world-table */
-  while (bot<= top) {
+  for (;;) {
+    last_top = top;
     mid = (bot + top) / 2;
 
-    if ((world + mid)->number == vnum)
-      return (mid);
-    if ((world + mid)->number > vnum)
-      top = mid - 1;
-    else
-      bot = mid + 1;
+    if ((world + mid)->number == vnum) {
+      log("room_htree sync fix: %d: %d -> %d", vnum, i, mid);
+      htree_add(room_htree, vnum, mid);      
+       return (mid);
+    }
+    if (bot >= top)
+      return (NOWHERE);
+
+     if ((world + mid)->number > vnum)
+       top = mid - 1;
+     else
+       bot = mid + 1;
+ 
+    if (top > last_top)
+      return NOWHERE;
+   }
   }
-  return (NOWHERE);
 }
+ 
 
 /* returns the real number of the monster with given virtual number */
 mob_rnum real_mobile(mob_vnum vnum)
 {
-  mob_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_mobt;
-
-  /* quickly reject out-of-range vnums */
-  if (mob_index[bot].vnum > vnum || mob_index[top].vnum < vnum)
-    return (NOBODY);
+  mob_rnum bot, top, mid, i, last_top;
+  
+  if (vnum == NOBODY)
+    return NOBODY;
+  
+  i = htree_find(mob_htree, vnum);
+   
+  if (i != NOBODY && mob_index[i].vnum == vnum)
+    return i;
+  else { 
+   bot = 0;
+   top = top_of_mobt;
 
   /* perform binary search on mob-table */
-  while (bot <= top) {
+  for (;;) {
+    last_top = top;
     mid = (bot + top) / 2;
 
-    if ((mob_index + mid)->vnum == vnum)
-      return (mid);
+    if ((mob_index + mid)->vnum == vnum){
+      log("mob_htree sync fix: %d: %d -> %d", vnum, i, mid);
+       htree_add(mob_htree, vnum, mid);
+       return (mid);
+    }
+    
+    if (bot >= top)
+      return (NOBODY);
     if ((mob_index + mid)->vnum > vnum)
       top = mid - 1;
     else
       bot = mid + 1;
-  }
-  return (NOBODY);
+    if (top > last_top)
+     return NOWHERE;
+   }
+ }
 }
 
 /* returns the real number of the object with given virtual number */
 obj_rnum real_object(obj_vnum vnum)
 {
-  obj_rnum bot, top, mid;
-
-  bot = 0;
-  top = top_of_objt;
-
-  /* quickly reject out-of-range vnums */
-  if (obj_index[bot].vnum > vnum || obj_index[top].vnum < vnum)
-    return (NOTHING);
+  obj_rnum bot, top, mid, i, last_top;
+        
+  if (vnum == NOTHING)
+    return NOTHING;
+      
+  i = htree_find(obj_htree, vnum);
+  
+  if (i != NOWHERE && obj_index[i].vnum == vnum)
+    return i;
+  else {
+   bot = 0;
+   top = top_of_objt;
 
   /* perform binary search on obj-table */
-  while (bot <= top) {
+  for (;;) {
+    last_top = top;
     mid = (bot + top) / 2;
 
-    if ((obj_index + mid)->vnum == vnum)
+    if ((obj_index + mid)->vnum == vnum){
+      log("obj_htree sync fix: %d: %d -> %d", vnum, i, mid);
+      htree_add(obj_htree, vnum, mid);
       return (mid);
+      }
+    if (bot >= top)
+      return (NOTHING);
     if ((obj_index + mid)->vnum > vnum)
       top = mid - 1;
     else
       bot = mid + 1;
-  }
-  return (NOTHING);
+    if (top > last_top)
+      return NOWHERE;
+  }     
+ }
 }
 
 /* returns the real number of the zone with given virtual number */
@@ -3851,6 +4136,7 @@ static void load_default_config( void )
   CONFIG_MINIMAP_SIZE           = default_minimap_size;
   CONFIG_SCRIPT_PLAYERS         = script_players;
   CONFIG_DEBUG_MODE             = debug_mode;
+  CONFIG_ALL_ITEMS_UNIQUE       = all_items_unique;
 
   /* Rent / crashsave options. */
   CONFIG_FREE_RENT              = free_rent;
@@ -3931,6 +4217,8 @@ void load_config( void )
           CONFIG_AUTOSAVE_TIME = num;
         else if (!str_cmp(tag, "auto_save_olc"))
           CONFIG_OLC_SAVE = num;
+        else if (!str_cmp(tag, "all_items_unique"))
+         CONFIG_ALL_ITEMS_UNIQUE = num;
         break;
 
       case 'c':

@@ -317,3 +317,10 @@ int special_in_comm = YES;
 
 /* Current Debug Mode */
 int debug_mode = OFF;
+
+/*
+* Do you want to treat all objects as unique? Set to YES and
+* every object created in the game will be flagged as UNIQUE. This
+* will help prevent object duping.
+*/
+int all_items_unique = YES;

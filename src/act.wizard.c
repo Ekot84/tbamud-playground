@@ -2509,8 +2509,9 @@ ACMD(do_show)
   struct descriptor_data *d;
   char field[MAX_INPUT_LENGTH], value[MAX_INPUT_LENGTH],
 	arg[MAX_INPUT_LENGTH], buf[MAX_STRING_LENGTH];
-  int r, g, b;
+  int low, high, r, g, b;
   char colour[16];
+  char *strp;
 
   struct show_struct {
     const char *cmd;
@@ -2530,6 +2531,7 @@ ACMD(do_show)
     { "thaco",      LVL_IMMORT },
     { "exp",        LVL_IMMORT },
     { "colour",     LVL_IMMORT },
+    { "uniques",        LVL_GRGOD},
     { "\n", 0 }
   };
 
@@ -2814,6 +2816,25 @@ ACMD(do_show)
         }
     page_string(ch->desc, buf, TRUE);
     break;
+  
+  case 14:
+    if (value != NULL && *value) {
+     if (sscanf(value, "%d-%d", &low, &high) != 2) {
+       if (sscanf(value, "%d", &low) != 1) {
+         send_to_char(ch, "Usage: show uniques, show uniques [vnum], or show uniques [low-high]\r\n");
+         return;
+       } else {
+         high = low;
+       }
+      }
+     } else {
+        low = -1;
+        high = 99999999;
+     }
+     strp = sprintuniques(low, high);
+     page_string(ch->desc, strp, TRUE);
+     free(strp);
+     break;      
 
   /* show what? */
   default:

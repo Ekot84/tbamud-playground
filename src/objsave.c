@@ -120,6 +120,9 @@ int objsave_save_obj_record(struct obj_data *obj, FILE *fp, int locate)
   if (TEST_OBJN(wear_flags))
     fprintf(fp, "Wear: %d %d %d %d\n", GET_OBJ_WEAR(obj)[0], GET_OBJ_WEAR(obj)[1], GET_OBJ_WEAR(obj)[2], GET_OBJ_WEAR(obj)[3]);
 
+  fprintf(fp, "UID : %lld\n", GET_OBJ_UID(obj));
+  fprintf(fp, "Gen : %ld\n", GET_OBJ_GENERATION(obj));
+
   /* Do we have affects? */
   for (counter2 = 0; counter2 < MAX_OBJ_AFFECT; counter2++)
     if (obj->affected[counter2].modifier != temp->affected[counter2].modifier)
@@ -1120,6 +1123,10 @@ obj_save_data *objsave_parse_objects(FILE *fl)
         GET_OBJ_EXTRA(temp)[3] = asciiflag_conv(f4);
       }
       break;
+    case 'G':
+      if (!strcmp(tag, "Gen "))
+        sscanf(line, "%ld", &GET_OBJ_GENERATION(temp));
+      break;
     case 'L':
       if(!strcmp(tag, "Loc "))
         current->locate = num;
@@ -1148,6 +1155,10 @@ obj_save_data *objsave_parse_objects(FILE *fl)
     case 'T':
       if (!strcmp(tag, "Type"))
         GET_OBJ_TYPE(temp) = num;
+      break;
+    case 'U':
+      if (!strcmp(tag, "UID "))
+       sscanf(line, "%lld", &GET_OBJ_UID(temp));
       break;
     case 'W':
       if (!strcmp(tag, "Wear")) {
@@ -1283,7 +1294,11 @@ static int handle_obj(struct obj_data *temp, struct char_data *ch, int locate, s
 
   if (!temp)  /* this should never happen, but.... */
     return FALSE;
-
+  else if (check_unique_id(temp) == 1) {
+    extract_obj(temp);
+    return FALSE;
+  }
+  
   auto_equip(ch, temp, locate);
 
   /* What to do with a new loaded item:

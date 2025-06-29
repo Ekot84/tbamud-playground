@@ -710,6 +710,10 @@ do                                                              \
 #define GET_OBJ_VAL(obj, val)	((obj)->obj_flags.value[(val)])
 /** Weight of obj. */
 #define GET_OBJ_WEIGHT(obj)	((obj)->obj_flags.weight)
+/** Unique ID of obj */
+#define GET_OBJ_UID(obj)        ((obj)->unique_id)
+/** Creation date of obj */
+#define GET_OBJ_GENERATION(obj) ((obj)->generation)
 /** Current timer of obj. */
 #define GET_OBJ_TIMER(obj)	((obj)->obj_flags.timer)
 /** Real number of obj instance. */
@@ -975,6 +979,8 @@ do                                                              \
 #define CONFIG_DISP_CLOSED_DOORS config_info.play.disp_closed_doors
 /** Get the diagonal directions setting. */
 #define CONFIG_DIAGONAL_DIRS    config_info.play.diagonal_dirs
+/** Make items all unique */
+#define CONFIG_ALL_ITEMS_UNIQUE config_info.play.all_items_unique
 
 /* Map/Automap options */
 #define CONFIG_MAP             config_info.play.map_option

@@ -257,6 +257,9 @@ void  free_help_table(void);
 void  free_player_index(void);
 void  load_help(FILE *fl, char *name);
 void  new_mobile_data(struct char_data *ch);
+void  add_unique_id(struct obj_data *obj);
+int   check_unique_id(struct obj_data *obj);
+char  *sprintuniques(int low, int high);
 
 zone_rnum real_zone(zone_vnum vnum);
 room_rnum real_room(room_vnum vnum);
@@ -320,6 +323,11 @@ int count_hash_records(FILE *fl);
 bitvector_t asciiflag_conv(char *flag);
 void renum_world(void);
 void load_config( void );
+
+/* Cunnning addition - new sort tree for duping detection - 12/06/10 */
+extern struct htree_node *room_htree;
+extern struct htree_node *mob_htree;
+extern struct htree_node *obj_htree;
 
 /* Various Files */
 extern char *credits;

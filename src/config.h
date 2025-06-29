@@ -87,5 +87,6 @@ extern int bitsavetodisk;
 extern int auto_pwipe;
 extern struct pclean_criteria_data pclean_criteria[];
 extern int selfdelete_fastwipe;
+extern int all_items_unique;
 
 #endif /* _CONFIG_H_*/

@@ -17,6 +17,7 @@
 #include "genzon.h"
 #include "dg_olc.h"
 #include "spells.h"
+#include "htree.h"
 
 /* local functions */
 static void extract_mobile_all(mob_vnum vnum);
@@ -58,6 +59,7 @@ int add_mobile(struct char_data *mob, mob_vnum vnum)
     }
     mob_index[i] = mob_index[i - 1];
     mob_proto[i] = mob_proto[i - 1];
+    htree_add(mob_htree, mob_index[i].vnum, i);
     mob_proto[i].nr++;
   }
   if (!found) {
@@ -67,6 +69,7 @@ int add_mobile(struct char_data *mob, mob_vnum vnum)
     mob_index[0].vnum = vnum;
     mob_index[0].number = 0;
     mob_index[0].func = 0;
+    htree_add(mob_htree, mob_index[0].vnum, 0);
   }
 
   log("GenOLC: add_mobile: Added mobile %d at index #%d.", vnum, found);
@@ -166,6 +169,9 @@ int delete_mobile(mob_rnum refpt)
     mob_proto[counter] = mob_proto[counter + 1];
     mob_proto[counter].nr--;
   }
+
+  /* Remove from htree table */
+  htree_del(mob_htree, vnum);
 
   top_of_mobt--;
   RECREATE(mob_index, struct index_data, top_of_mobt + 1);

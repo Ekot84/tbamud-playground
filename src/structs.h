@@ -438,8 +438,9 @@
 #define ITEM_ANTI_WARRIOR     15   /**< Not usable by warriors */
 #define ITEM_NOSELL           16   /**< Shopkeepers won't touch it */
 #define ITEM_QUEST            17   /**< Item is a quest item         */
+#define ITEM_UNIQUE_SAVE      18   /**< Item is a unique save item */
 /** Total number of item flags */
-#define NUM_ITEM_FLAGS    18
+#define NUM_ITEM_FLAGS    19
 
 /* Modifier constants used with obj affects ('A' fields) */
 #define APPLY_NONE              0	/**< No effect			*/
@@ -713,6 +714,9 @@ struct obj_data
 
   struct obj_flag_data obj_flags;  /**< Object information            */
   struct obj_affected_type affected[MAX_OBJ_AFFECT]; /**< affects */
+
+  time_t generation;                            /* creation time for dupe check     */
+  unsigned long long unique_id;                 /* random bits for dupe check       */
 
   char *name;        /**< Keyword reference(s) for object. */
   char *description; /**< Shown when the object is lying in a room. */
@@ -1287,7 +1291,8 @@ struct game_data
   int map_size;           /**< Default size for map command         */
   int minimap_size;       /**< Default size for mini-map (automap)  */
   int script_players;     /**< Is attaching scripts to players allowed? */
-
+  int all_items_unique;   /* Treat all items as unique            */
+  
   char *OK;       /**< When player receives 'Okay.' text.    */
   char *HUH;      /**< 'Huh!?!'                              */ 
   char *NOPERSON; /**< 'No one by that name here.'           */

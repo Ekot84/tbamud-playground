@@ -18,7 +18,7 @@
 #include "shop.h"
 #include "dg_olc.h"
 #include "mud_event.h"
-
+#include "htree.h"
 
 /* This function will copy the strings so be sure you free your own copies of 
  * the description, title, and such. */
@@ -67,6 +67,7 @@ room_rnum add_room(struct room_data *room)
       for (tobj = world[i].contents; tobj; tobj = tobj->next_content)
 	IN_ROOM(tobj) += (IN_ROOM(tobj) != NOWHERE);
     }
+    htree_add(room_htree, world[i].number, i);
   }
   if (!found) {
     world[0] = *room;	/* Last place, in front. */
@@ -114,6 +115,9 @@ room_rnum add_room(struct room_data *room)
   } while (i > 0);
 
   add_to_save_list(zone_table[room->zone].number, SL_WLD);
+
+  /* remove from realnum lookup tree */
+  htree_del(room_htree, room->number);
 
   /* Return what array entry we placed the new room in. */
   return found;

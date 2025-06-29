@@ -19,6 +19,7 @@
 #include "handler.h"
 #include "interpreter.h"
 #include "boards.h" /* for board_info */
+#include "htree.h"
 
 
 /* local functions */
@@ -74,6 +75,8 @@ static int update_all_objects(struct obj_data *refobj)
     obj->next_content = swap.next_content;
     obj->next = swap.next;
     obj->sitting_here = swap.sitting_here;
+    obj->unique_id = swap.unique_id;
+    obj->generation = swap.generation; 
   }
 
   return count;
@@ -150,6 +153,7 @@ obj_rnum insert_object(struct obj_data *obj, obj_vnum ovnum)
     obj_index[i] = obj_index[i - 1];
     obj_proto[i] = obj_proto[i - 1];
     obj_proto[i].item_number = i;
+    htree_add(obj_htree, obj_index[i].vnum, i);
   }
 
   /* Not found, place at 0. */
@@ -163,7 +167,7 @@ obj_rnum index_object(struct obj_data *obj, obj_vnum ovnum, obj_rnum ornum)
 #else
   if (obj == NULL || ovnum < 0 || ornum < 0 || ornum > top_of_objt)
 #endif
-    return NOWHERE;
+    return NOTHING;
 
   obj->item_number = ornum;
   obj_index[ornum].vnum = ovnum;
@@ -172,6 +176,7 @@ obj_rnum index_object(struct obj_data *obj, obj_vnum ovnum, obj_rnum ornum)
 
   copy_object_preserve(&obj_proto[ornum], obj);
   obj_proto[ornum].in_room = NOWHERE;
+  htree_add(obj_htree, obj_index[ornum].vnum, ornum);
 
   return ornum;
 }
@@ -433,6 +438,10 @@ int delete_object(obj_rnum rnum)
   for (tmp = object_list; tmp; tmp = tmp->next) {
     GET_OBJ_RNUM(tmp) -= (GET_OBJ_RNUM(tmp) > rnum);
   }
+
+  /* Remove from htree table */
+  htree_del(obj_htree, obj_index[rnum].number);
+
 
   for (i = rnum; i < top_of_objt; i++) {
     obj_index[i] = obj_index[i + 1];

@@ -101,6 +101,7 @@ static void cedit_setup(struct descriptor_data *d)
   OLC_CONFIG(d)->play.map_size            = CONFIG_MAP_SIZE;
   OLC_CONFIG(d)->play.minimap_size        = CONFIG_MINIMAP_SIZE;
   OLC_CONFIG(d)->play.script_players      = CONFIG_SCRIPT_PLAYERS;
+  OLC_CONFIG(d)->play.all_items_unique    = CONFIG_ALL_ITEMS_UNIQUE;
 
   /* Crash Saves */
   OLC_CONFIG(d)->csd.free_rent            = CONFIG_FREE_RENT;
@@ -382,7 +383,8 @@ int save_config( IDXTYPE nowhere )
               "default_minimap_size = %d\n\n", CONFIG_MINIMAP_SIZE);
   fprintf(fl, "* Do you want scripts to be attachable to players?\n"
               "script_players = %d\n\n", CONFIG_SCRIPT_PLAYERS);
-
+  fprintf(fl, "* Should all items be treated as unique?\n"
+              "all_items_unique = %d\n\n", CONFIG_ALL_ITEMS_UNIQUE);
 
   strcpy(buf, CONFIG_OK);
   strip_cr(buf);
@@ -634,6 +636,7 @@ static void cedit_disp_game_play_options(struct descriptor_data *d)
         "%sP%s) Display Closed Doors        : %s%s\r\n"
         "%sR%s) Diagonal Directions         : %s%s\r\n"
         "%sS%s) Prevent Mortal Level To Immortal : %s%s\r\n"
+        "%sV%s) Treat all Objects as Unique : %s%s\r\n"
 	"%s1%s) OK Message Text         : %s%s"
 	"%s2%s) HUH Message Text        : %s%s"
         "%s3%s) NOPERSON Message Text   : %s%s"
@@ -663,6 +666,7 @@ static void cedit_disp_game_play_options(struct descriptor_data *d)
         grn, nrm, cyn, CHECK_VAR(OLC_CONFIG(d)->play.disp_closed_doors),
         grn, nrm, cyn, CHECK_VAR(OLC_CONFIG(d)->play.diagonal_dirs),
         grn, nrm, cyn, CHECK_VAR(OLC_CONFIG(d)->play.no_mort_to_immort),
+        grn, nrm, cyn, CHECK_VAR(OLC_CONFIG(d)->play.all_items_unique),
 
         grn, nrm, cyn, OLC_CONFIG(d)->play.OK,
         grn, nrm, cyn, OLC_CONFIG(d)->play.HUH,
@@ -980,7 +984,11 @@ void cedit_parse(struct descriptor_data *d, char *arg)
 		case 'S':
 		  TOGGLE_VAR(OLC_CONFIG(d)->play.no_mort_to_immort);
           break;
-
+    
+    case 'v':
+    case 'V':
+      TOGGLE_VAR(OLC_CONFIG(d)->play.all_items_unique);
+          break;
         case '1':
           write_to_output(d, "Enter the OK message : ");
           OLC_MODE(d) = CEDIT_OK;
