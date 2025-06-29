@@ -88,5 +88,6 @@ extern int auto_pwipe;
 extern struct pclean_criteria_data pclean_criteria[];
 extern int selfdelete_fastwipe;
 extern int all_items_unique;
+extern int max_mail_weight;
 
 #endif /* _CONFIG_H_*/

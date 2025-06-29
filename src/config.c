@@ -324,3 +324,11 @@ int debug_mode = OFF;
 * will help prevent object duping.
 */
 int all_items_unique = YES;
+
+/* Maximum weight of mail that can be sent.  This is the maximum weight of
+ * items that can be sent in a single mail message.  If you want to allow
+ * sending more than this, you will have to increase the value below.
+ * Note: This is not the maximum weight of items that can be carried by a
+ * character, but rather the maximum weight of items that can be sent in a
+ * single mail message. */
+int max_mail_weight = 500;

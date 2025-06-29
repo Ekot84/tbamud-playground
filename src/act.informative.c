@@ -29,6 +29,7 @@
 #include "asciimap.h"
 #include "quest.h"
 #include "account.h"
+#include "itemmail.h"    /**< For the has_item_mail function */
 
 /* prototypes of local functions */
 /* do_diagnose utility functions */
@@ -102,6 +103,10 @@ static void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mod
     }
     send_to_char(ch, "%s", CCGRN(ch, C_NRM));
     send_to_char(ch, "%s", obj->description);
+
+    if (obj->action_description)
+  send_to_char(ch, "\r\n%s", obj->action_description);
+
     break;
 
   case SHOW_OBJ_SHORT:
@@ -1286,10 +1291,12 @@ ACMD(do_who)
       } else {
         num_can_see++;
         send_to_char(ch, "%s[%2d %s] %s%s%s%s",
-            (GET_LEVEL(tch) >= LVL_IMMORT ? CCYEL(ch, C_SPR) : ""),
-            GET_LEVEL(tch), CLASS_ABBR(tch),
-            GET_NAME(tch), (*GET_TITLE(tch) ? " " : ""), GET_TITLE(tch),
-            CCNRM(ch, C_SPR));
+          (GET_LEVEL(tch) >= LVL_IMMORT ? CCYEL(ch, C_SPR) : ""),
+          GET_LEVEL(tch), CLASS_ABBR(tch),
+          GET_NAME(tch),
+          (GET_TITLE(tch) && *GET_TITLE(tch) ? " " : ""),
+          (GET_TITLE(tch) ? GET_TITLE(tch) : ""),
+          CCNRM(ch, C_SPR));
 
         if (GET_INVIS_LEV(tch))
           send_to_char(ch, " (i%d)", GET_INVIS_LEV(tch));
@@ -2141,8 +2148,15 @@ ACMD(do_toggle)
       act("$n is now away from $s keyboard.", TRUE, ch, 0, 0, TO_ROOM);
     else {
       act("$n has returned to $s keyboard.", TRUE, ch, 0, 0, TO_ROOM);
-      if (has_mail(GET_IDNUM(ch)))
-        send_to_char(ch, "You have mail waiting.\r\n");
+      bool has_letters = has_mail(GET_IDNUM(ch));
+      bool has_parcels = has_item_mail(GET_IDNUM(ch));
+
+      if (has_letters && has_parcels)
+        send_to_char(ch, "You have mail and a parcel waiting at the post office.\r\n");
+      else if (has_letters)
+        send_to_char(ch, "You have mail waiting at the post office.\r\n");
+      else if (has_parcels)
+        send_to_char(ch, "You have a parcel waiting at the post office.\r\n");
     }
     break;
   case SCMD_WIMPY:

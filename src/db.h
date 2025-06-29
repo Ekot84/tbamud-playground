@@ -47,6 +47,7 @@
 #define LIB_PLRVARS	"plrvars/"
 #define LIB_HOUSE	"house/"
 #define LIB_PLRFILES    "plrfiles/"
+#define LIB_ITEMMAIL "itemmail/"
 #define SLASH		"/"
 #else
 #error "Unknown path components."

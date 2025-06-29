@@ -317,13 +317,22 @@ static void postmaster_send_mail(struct char_data *ch, struct char_data *mailman
 }
 
 static void postmaster_check_mail(struct char_data *ch, struct char_data *mailman,
-			  int cmd, char *arg)
+                                  int cmd, char *arg)
 {
-  if (has_mail(GET_IDNUM(ch)))
+  bool has_letters = has_mail(GET_IDNUM(ch));
+  bool has_parcels = has_item_mail(GET_IDNUM(ch));
+
+  if (has_letters && has_parcels) {
+    act("$n tells you, 'You have mail and a parcel waiting.'", FALSE, mailman, 0, ch, TO_VICT);
+  } else if (has_letters) {
     act("$n tells you, 'You have mail waiting.'", FALSE, mailman, 0, ch, TO_VICT);
-  else
-    act("$n tells you, 'Sorry, you don't have any mail waiting.'", FALSE, mailman, 0, ch, TO_VICT);
+  } else if (has_parcels) {
+    act("$n tells you, 'You have a parcel waiting.'", FALSE, mailman, 0, ch, TO_VICT);
+  } else {
+    act("$n tells you, 'Sorry, you don't have any mail or parcels waiting.'", FALSE, mailman, 0, ch, TO_VICT);
+  }
 }
+
 
 static void postmaster_receive_mail(struct char_data *ch, struct char_data *mailman,
 			  int cmd, char *arg)
@@ -372,3 +381,5 @@ void notify_if_playing(struct char_data *from, int recipient_id)
     if ((IS_PLAYING(d)) && (GET_IDNUM(d->character) == recipient_id) && (has_mail(GET_IDNUM(d->character)))) 
       send_to_char(d->character, "You have new mudmail from %s.\r\n", GET_NAME(from)); 
 } 
+
+

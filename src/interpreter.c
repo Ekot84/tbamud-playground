@@ -18,6 +18,7 @@
 #include "spells.h"
 #include "handler.h"
 #include "mail.h"
+#include "itemmail.h"
 #include "screen.h"
 #include "genolc.h"
 #include "oasis.h"
@@ -191,6 +192,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "close"    , "cl"      , POS_SITTING , do_gen_door , 0, SCMD_CLOSE },
   { "clear"    , "cle"     , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
   { "cls"      , "cls"     , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
+  { "collectitem", "collectitem", POS_STANDING, do_collectitem, 0, 0 },
   { "consider" , "con"     , POS_RESTING , do_consider , 0, 0 },
   { "commands" , "com"     , POS_DEAD    , do_commands , 0, SCMD_COMMANDS },
   { "compact"  , "comp"    , POS_DEAD    , do_gen_tog  , 0, SCMD_COMPACT },
@@ -277,6 +279,7 @@ cpp_extern const struct command_info cmd_info[] = {
 
   { "motd"     , "motd"    , POS_DEAD    , do_gen_ps   , 0, SCMD_MOTD },
   { "mail"     , "mail"    , POS_STANDING, do_not_here , 1, 0 },
+  { "mailitem" , "mailitem", POS_STANDING, do_mailitem, 0, 0 },
   { "map"      , "map"     , POS_STANDING, do_map      , 1, 0 },
   { "medit"    , "med"     , POS_DEAD    , do_oasis_medit, LVL_BUILDER, 0 },
   { "mlist"    , "mlist"   , POS_DEAD    , do_oasis_list, LVL_BUILDER, SCMD_OASIS_MLIST },
@@ -1223,8 +1226,15 @@ static int perform_dupe_check(struct descriptor_data *d)
     write_to_output(d, "Reconnecting.\r\n");
     act("$n has reconnected.", TRUE, d->character, 0, 0, TO_ROOM);
     mudlog(NRM, MAX(LVL_IMMORT, GET_INVIS_LEV(d->character)), TRUE, "%s [%s] has reconnected.", GET_NAME(d->character), d->host);
-    if (has_mail(GET_IDNUM(d->character)))
-      write_to_output(d, "You have mail waiting.\r\n");
+    bool has_letters = has_mail(GET_IDNUM(d->character));
+    bool has_parcels = has_item_mail(GET_IDNUM(d->character));
+
+  if (has_letters && has_parcels)
+    write_to_output(d, "You have mail and a parcel waiting at the post office.\r\n");
+  else if (has_letters)
+    write_to_output(d, "You have mail waiting at the post office.\r\n");
+  else if (has_parcels)
+    write_to_output(d, "You have a parcel waiting at the post office.\r\n");
     break;
   case USURP:
     write_to_output(d, "You take over your own body, already in use!\r\n");
@@ -1768,8 +1778,15 @@ void nanny(struct descriptor_data *d, char *arg)
           send_to_char(d->character, "%s", CONFIG_START_MESSG);
         }
         look_at_room(d->character, 0);
-        if (has_mail(GET_IDNUM(d->character)))
-          send_to_char(d->character, "You have mail waiting.\r\n");
+        bool has_letters = has_mail(GET_IDNUM(d->character));
+        bool has_parcels = has_item_mail(GET_IDNUM(d->character));
+
+        if (has_letters && has_parcels)
+          send_to_char(d->character, "You have mail and a parcel waiting at the post office.\r\n");
+        else if (has_letters)
+          send_to_char(d->character, "You have mail waiting at the post office.\r\n");
+        else if (has_parcels)
+          send_to_char(d->character, "You have a parcel waiting at the post office.\r\n");
         if (load_result == 2) {
           send_to_char(d->character, "\r\n\007You could not afford your rent!\r\n"
                                      "Your possessions have been donated to the Salvation Army!\r\n");

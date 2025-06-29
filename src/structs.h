@@ -1292,7 +1292,8 @@ struct game_data
   int minimap_size;       /**< Default size for mini-map (automap)  */
   int script_players;     /**< Is attaching scripts to players allowed? */
   int all_items_unique;   /* Treat all items as unique            */
-  
+  int max_mail_weight; /**< Maximum weight of mail items */
+
   char *OK;       /**< When player receives 'Okay.' text.    */
   char *HUH;      /**< 'Huh!?!'                              */ 
   char *NOPERSON; /**< 'No one by that name here.'           */

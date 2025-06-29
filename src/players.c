@@ -443,7 +443,11 @@ int load_char(const char *name, struct char_data *ch)
         if (!strcmp(tag, "Thir"))
           GET_COND(ch, THIRST) = atoi(line);
         else if (!strcmp(tag, "Titl"))
+        {
           GET_TITLE(ch) = strdup(line);
+          if (!GET_TITLE(ch) || !*GET_TITLE(ch))
+            GET_TITLE(ch) = strdup("");
+        }
         else if (!strcmp(tag, "Trig") && CONFIG_SCRIPT_PLAYERS) {
           if ((t_rnum = real_trigger(atoi(line))) != NOTHING) {
             t = read_trigger(t_rnum);

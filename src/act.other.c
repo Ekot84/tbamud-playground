@@ -814,8 +814,15 @@ ACMD(do_gen_tog)
       act("$n has gone AFK.", TRUE, ch, 0, 0, TO_ROOM);
     else {
       act("$n has come back from AFK.", TRUE, ch, 0, 0, TO_ROOM);
-      if (has_mail(GET_IDNUM(ch)))
-        send_to_char(ch, "You have mail waiting.\r\n");
+      bool has_letters = has_mail(GET_IDNUM(ch));
+      bool has_parcels = has_item_mail(GET_IDNUM(ch));
+
+      if (has_letters && has_parcels)
+        send_to_char(ch, "You have mail and a parcel waiting at the post office.\r\n");
+      else if (has_letters)
+        send_to_char(ch, "You have mail waiting at the post office.\r\n");
+      else if (has_parcels)
+      send_to_char(ch, "You have a parcel waiting at the post office.\r\n");
     }
     break;
   case SCMD_AUTOLOOT:
