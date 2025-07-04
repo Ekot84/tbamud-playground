@@ -995,6 +995,54 @@ struct player_special_data
   int buildwalk_sector;  /**< Default sector type for buildwalk */
 };
 
+/** Player statistics structure.
+ * This is used to track various statistics about a player character's
+ * actions and achievements in the game. */
+struct player_statistics {
+  /* Combat */
+  int kills_total;
+  int kills_legit_total;
+  int kills_unique_mobs;
+  int deaths;
+  uint32_t critical_hits;
+  int times_resurrected;
+
+  /* Damage & Healing */
+  uint64_t total_damage_done;
+  uint64_t total_physical_damage_done;
+  uint64_t total_magic_damage_done;
+  uint64_t total_healing_done;
+
+  /* Loot & Items */
+  int items_looted;
+  int items_legit_looted;
+  int items_donated;
+  int items_legit_donated;
+  int items_sold;
+  int items_legit_sold;
+  int items_junked;
+  int items_legit_junked;
+  int items_bought;
+  int items_legit_bought;
+  int scrolls_used;
+  int potions_used;
+
+  /* Currency */
+  uint64_t gold_earned;
+  uint64_t gold_spent;
+
+  /* Quests */
+  int quests_completed;
+  int quests_failed;
+
+  /* Exploration */
+  int zones_discovered;
+
+  /* Progression */
+  uint64_t total_exp_collected;
+  int hours_played; /* Räknas t.ex. i save-char varje timme */
+};
+
 /** Special data used by NPCs, not PCs */
 struct mob_special_data
 {
