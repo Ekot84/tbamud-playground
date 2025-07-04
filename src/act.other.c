@@ -26,6 +26,7 @@
 #include "class.h"
 #include "fight.h"
 #include "mail.h"  /* for has_mail() */
+#include "itemmail.h"  /* for has_item_mail() */
 #include "shop.h"
 #include "quest.h"
 #include "modify.h"
@@ -976,4 +977,51 @@ ACMD(do_happyhour)
                      CCYEL(ch, C_NRM), CCNRM(ch, C_NRM),
                      (3600 / SECS_PER_MUD_HOUR) );
   }
+}
+
+#define MAX_KILL_LIST_DISPLAY 10
+
+ACMD(do_killlist)
+{
+  const char *overflow = "\r\n**OVERFLOW**\r\n";
+  int sortpos = 1, ret;
+  size_t len = 0;
+  extern struct char_data *mob_proto;
+  struct kill_node *kill, *next_kill;
+  char buf[MAX_STRING_LENGTH];
+
+  /* Header text */
+  len = snprintf(buf, sizeof(buf), "Recent Kills (max %d shown)\r\n\r\n", MAX_KILL_LIST_DISPLAY);
+
+  for (kill = ch->kill_mem; kill; kill = next_kill) {
+    if (sortpos > MAX_KILL_LIST_DISPLAY)
+      break;
+
+    if (len >= sizeof(buf) - 128) {
+      strcat(buf, "**OUTPUT OVERFLOW**\r\n");
+      break;
+    }
+
+    if (kill->amount && real_mobile(kill->vnum)) {
+      ret = snprintf(buf + len, sizeof(buf) - len,
+        "\tc%2d\tw)\tn %-30s \tw(\tR%5d\tw): Deaths: \tR%2d\tn\r\n",
+        sortpos,
+        mob_proto[real_mobile(kill->vnum)].player.short_descr,
+        kill->vnum,
+        kill->amount);
+
+      if (ret < 0 || len + ret >= sizeof(buf))
+        break;
+
+      len += ret;
+    }
+
+    next_kill = kill->next;
+    sortpos++;
+  }
+
+  if (len >= sizeof(buf))
+    strcpy(buf + sizeof(buf) - strlen(overflow) - 1, overflow);
+
+  page_string(ch->desc, buf, 1);
 }

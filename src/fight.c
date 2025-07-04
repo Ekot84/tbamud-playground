@@ -268,6 +268,81 @@ static void change_alignment(struct char_data *ch, struct char_data *victim)
   GET_ALIGNMENT(ch) += (-GET_ALIGNMENT(victim) - GET_ALIGNMENT(ch)) / 16;
 }
 
+void kill_remove(struct char_data * ch, struct kill_node *kill)
+{
+  struct kill_node *temp;
+
+  if (ch->kill_mem == NULL) {
+    core_dump();
+    return;
+  }
+
+  REMOVE_FROM_LIST(kill, ch->kill_mem, next);
+  free(kill);
+}
+
+void kill_add(struct char_data * ch, int vnum, int amount, int end)
+{
+  struct kill_node * kill, *next_kill = NULL, *temp_kill = NULL;
+
+  CREATE(kill, struct kill_node, 1);
+  kill->vnum = vnum;
+  kill->amount = amount;
+  kill->next = NULL;
+  if(end) {
+    if(ch->kill_mem) {
+      for (temp_kill = ch->kill_mem; temp_kill; temp_kill = next_kill) {
+        if(temp_kill->next == NULL) {
+          temp_kill->next = kill;
+          return;
+        }
+        next_kill = temp_kill->next;
+      }
+    } else 
+      ch->kill_mem = kill;
+  } else {
+    kill->next = ch->kill_mem;
+    ch->kill_mem = kill;   
+  }
+}
+
+long kills_limit_xpgain(struct char_data *ch, struct char_data *victim, int exp)
+{
+  int victim_vnum = GET_MOB_VNUM(victim);
+  int list_count = 0, number_killed = 1, found = FALSE;
+  struct kill_node *kill = NULL, *next_kill, *last_kill = NULL;
+
+  if(ch->kill_mem) {
+    for (kill = ch->kill_mem; kill; kill = next_kill) {
+      if(kill->vnum == victim_vnum) {
+        found = TRUE;
+        break;
+      }
+      list_count++;
+      if(!kill->next)
+        last_kill = kill;
+      next_kill = kill->next;
+    }
+  }
+  
+  /* if its found, it already has the node, else give it the start */
+  if(found)
+    number_killed = ++kill->amount;
+
+  /* if a kill was found, it needs to be removed and re added later */
+  if(kill)
+    kill_remove(ch, kill);
+  /* else if last kill points at a last element, remove that */
+  else {
+    if(last_kill && list_count >= MAX_KILL_MEMORY)
+      kill_remove(ch, last_kill);
+  }
+
+  kill_add(ch, victim_vnum, number_killed, FALSE);
+
+  return (MAX(1, number_killed));
+}
+
 void death_cry(struct char_data *ch)
 {
   int door;
@@ -332,12 +407,52 @@ void die(struct char_data * ch, struct char_data * killer)
   raw_kill(ch, killer);
 }
 
+long find_exp(struct char_data * ch, struct char_data * victim)
+{
+  long exp;
+  int ch_class = CLASS_WARRIOR, number_killed;
+  
+  /* For Now BUT need to rewritten --Eko */
+    exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim));
+    
+  /*if(IS_REMORT(ch)) {
+    exp = (level_exp(ch_class, GET_LEVEL(victim)+1) - level_exp(ch_class, GET_LEVEL(victim))) / 10;
+    exp = MIN(exp, ((level_exp(ch_class, (100)) - level_exp(ch_class, 99)) / 4)); */
+  //if {
+   // exp = (level_exp(ch_class, GET_LEVEL(victim)+1) - level_exp(ch_class, GET_LEVEL(victim))) / 20;
+    //exp = MIN(exp, ((level_exp(ch_class, (GET_LEVEL(ch)+1)) - level_exp(ch_class, GET_LEVEL(ch))) / 10));
+  //}
+
+  //if (((GET_LEVEL(ch) - GET_LEVEL(victim)) > 75) && GET_LEVEL(ch) > GET_LEVEL(victim))
+    //exp /= (GET_LEVEL(ch)-GET_LEVEL(victim));
+   
+  /* no exp for a player :P */
+  if (!IS_NPC(victim))
+    return 0;
+
+  //if (IS_NPC(victim) && MOB_FLAGGED(victim, MOB_SUMMONED))
+    //return 1;
+
+  /* mob kill memory*/
+  if (!IS_NPC(ch) && IS_NPC(victim)) {
+    
+    /* min of 22 to produce a max of 77 percent later on */
+    number_killed = MIN(22, kills_limit_xpgain(ch, victim, exp));
+    if(GET_LEVEL(ch) > 18) 
+      exp = exp * (1 - (number_killed * .035));
+    exp = MAX(0, exp);
+  }
+
+  return exp;
+}
+
 static void perform_group_gain(struct char_data *ch, int base,
 			     struct char_data *victim)
 {
   int share, hap_share;
 
-  share = MIN(CONFIG_MAX_EXP_GAIN, MAX(1, base));
+  //share = MIN(CONFIG_MAX_EXP_GAIN, MAX(1, base));
+  share = (find_exp(ch, victim)) * (base * .12 + .9);
 
   if ((IS_HAPPYHOUR) && (IS_HAPPYEXP))
   {
@@ -382,27 +497,35 @@ static void group_gain(struct char_data *ch, struct char_data *victim)
 
 static void solo_gain(struct char_data *ch, struct char_data *victim)
 {
-  int exp, happy_exp;
-
-  exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim) / 3);
+  long exp, happy_exp, expflow, explow, exptemp;
+  exp = find_exp(ch, victim);
+  //exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim) / 3);
 
   /* Calculate level-difference bonus */
-  if (IS_NPC(ch))
+  /*if (IS_NPC(ch))
     exp += MAX(0, (exp * MIN(4, (GET_LEVEL(victim) - GET_LEVEL(ch)))) / 8);
   else
     exp += MAX(0, (exp * MIN(8, (GET_LEVEL(victim) - GET_LEVEL(ch)))) / 8);
 
-  exp = MAX(exp, 1);
+  exp = MAX(exp, 1);*/
 
   if (IS_HAPPYHOUR && IS_HAPPYEXP) {
     happy_exp = exp + (int)((float)exp * ((float)HAPPY_EXP / (float)(100)));
     exp = MAX(happy_exp, 1);
   }
 
-  if (exp > 1)
-    send_to_char(ch, "You receive %d experience points.\r\n", exp);
-  else
-    send_to_char(ch, "You receive one lousy experience point.\r\n");
+  if (exp > 10) {
+        /* Random Exp per Kill */
+    expflow = (exp / 10);
+    explow = (exp - expflow);
+    exptemp = rand_number(explow, exp);
+    exp = exptemp;
+    send_to_char(ch, "\tgYou receive \tG%ld \tgexperience points.\tn\r\n", exp);
+  } else if (exp < 10) {
+      send_to_char(ch, "\tgYou receive \tG%ld \tgexperience points.\tn\r\n", exp);
+  } else {
+    send_to_char(ch, "\tgYou receive \tGone\tg lousy experience point.\tn\r\n");
+  }
 
   gain_exp(ch, exp);
   change_alignment(ch, victim);

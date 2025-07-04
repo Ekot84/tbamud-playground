@@ -956,6 +956,10 @@ struct char_special_data
 struct player_special_data_saved
 {
   byte skills[MAX_SKILLS+1]; /**< Character skills. */
+  #define MAX_KILL_MEMORY 50
+  int  kills_vnum[MAX_KILL_MEMORY]; /* Virtual numbers of mobs killed */
+  byte kills_amount[MAX_KILL_MEMORY];/* Number of mobs of type killed */
+  byte kills_curpos;       /* Current position in array          */
   int wimp_level;         /**< Below this # of hit points, flee! */
   byte freeze_level;      /**< Level of god who froze char, if any */
   sh_int invis_level;     /**< level of invisibility */
@@ -1065,6 +1069,17 @@ struct affected_type
   struct affected_type *next; /**< The next affect in the list of affects. */
 };
 
+/** A node in the list of kills for a character.
+ * This is used to track how many of each type of mob a character has killed.
+ * The vnum is the virtual number of the mob, and amount is how many times
+ * this character has killed that mob. */
+struct kill_node {
+   mob_vnum vnum;
+   int amount;
+
+   struct kill_node *next;
+};
+
 /** The list element that makes up a list of characters following this
  * character. */
 struct follow_type
@@ -1113,6 +1128,8 @@ struct char_data
   long pref; /**< unique session id */
   struct account_data *account;
   struct list_data * events;
+
+  struct kill_node *kill_mem; /**< List of mobs killed by this character */
 };
 
 /** descriptor-related structures */

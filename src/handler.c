@@ -872,6 +872,13 @@ void extract_char_final(struct char_data *ch)
   struct descriptor_data *d;
   struct obj_data *obj;
   int i;
+  struct kill_node *kill = NULL, *next_kill = NULL;
+
+  for (kill = ch->kill_mem; kill; kill = next_kill) {
+    next_kill = kill->next;
+    free(kill);
+  }
+  ch->kill_mem = NULL;
 
   if (IN_ROOM(ch) == NOWHERE) {
     log("SYSERR: NOWHERE extracting char %s. (%s, extract_char_final)",

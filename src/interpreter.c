@@ -266,6 +266,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "junk"     , "j"       , POS_RESTING , do_drop     , 0, SCMD_JUNK },
 
   { "kill"     , "k"       , POS_FIGHTING, do_kill     , 0, 0 },
+  { "killlist" , "killlist"  , POS_DEAD    , do_killlist , 1, 0 },
   { "kick"     , "ki"      , POS_FIGHTING, do_kick     , 1, 0 },
 
   { "look"     , "l"       , POS_RESTING , do_look     , 0, SCMD_LOOK },

@@ -227,7 +227,7 @@ char *get_name_by_id(long id)
  * if not. */
 int load_char(const char *name, struct char_data *ch)
 {
-  int id, i;
+  int id, i, num = 0, num2 = 0, num3 = 0, num4 = 0, num5 = 0, num6 = 0;
   FILE *fl;
   char filename[40];
   char buf[128], buf2[128], line[MAX_INPUT_LENGTH + 1], tag[6];
@@ -381,7 +381,24 @@ int load_char(const char *name, struct char_data *ch)
 	else if (!strcmp(tag, "Int "))	ch->real_abils.intel	= atoi(line);
 	else if (!strcmp(tag, "Invs"))	GET_INVIS_LEV(ch)	= atoi(line);
 	break;
-
+      case 'K':
+        if(!strcmp(tag, "Kamt")) {
+          num = 0;
+	  do {
+	    get_line(fl, line);
+            sscanf(line, "%d %d", &num2, &num3);
+            if(num2 != -1)
+              kill_add(ch, num2, num3, TRUE);
+            num++;
+          } while ((num2 != -1) && (num != MAX_KILL_MEMORY) 
+           && (num3 != 0) && (num2 != MAX_KILL_MEMORY));
+	} else if(!strcmp(tag, "Knum")) {
+	  do {
+	    get_line(fl, line);
+	    sscanf(line, "%d %d", &num, &num2);
+    } while (num != (MAX_KILL_MEMORY) && (num2 != 50) && (num3 != 0));
+	}
+    break;
       case 'L':
 	     if (!strcmp(tag, "Last"))	ch->player.time.logon	= atol(line);
   else if (!strcmp(tag, "Lern"))	GET_PRACTICES(ch)	= atoi(line);
@@ -501,6 +518,7 @@ void save_char(struct char_data * ch)
   int i, j, id, save_index = FALSE;
   struct affected_type *aff, tmp_aff[MAX_AFFECT];
   struct obj_data *char_eq[NUM_WEARS];
+  struct kill_node *kill = NULL, *next_kill = NULL;
   trig_data *t;
 
   if (IS_NPC(ch) || GET_PFILEPOS(ch) < 0)
@@ -621,6 +639,13 @@ void save_char(struct char_data * ch)
   if (GET_ELEMENTAL_RESISTANCE(ch) != 0)
     fprintf(fl, "EleR: %d\n", GET_ELEMENTAL_RESISTANCE(ch));
 
+      /* Kill List -Thanks Cyric --Eko */
+  	  fprintf(fl, "Kamt:\n");
+      for (kill = ch->kill_mem; kill; kill = next_kill) {
+        next_kill = kill->next;
+        fprintf(fl, "%d %d\n", kill->vnum, kill->amount);
+      }
+      fprintf(fl, "-1 -1\n");
 
   if (GET_WIMP_LEV(ch)	   != PFDEF_WIMPLEV)	fprintf(fl, "Wimp: %d\n", GET_WIMP_LEV(ch));
   if (GET_FREEZE_LEV(ch)   != PFDEF_FREEZELEV)	fprintf(fl, "Frez: %d\n", GET_FREEZE_LEV(ch));
