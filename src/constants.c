@@ -452,6 +452,7 @@ const char *extra_bits[] = {
   "NO_SELL",
   "QUEST_ITEM",
   "UNIQUE",
+  "NO_MAIL",
   "\n"
 };
 

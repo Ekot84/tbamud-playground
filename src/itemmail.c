@@ -71,6 +71,9 @@ ACMD(do_mailitem) {
   struct obj_data *obj;
   struct item_mail_entry entry;
   long idnum = -1;
+  /* Calculate postage cost */
+  int base_cost = 10;   /* Base price */
+  int per_weight = 2;   /* Price per weight unit */
 
   /* Parse arguments: mailitem <player> <item> */
   two_arguments(argument, target_name, item_name);
@@ -94,6 +97,15 @@ ACMD(do_mailitem) {
     return;
   }
 
+    /* Check if item is valid to mail */
+  if (OBJ_FLAGGED(obj, ITEM_NOMAIL)) {
+    send_to_char(ch, "You cannot mail that item.\r\n");
+    return;
+  }
+
+  /* Calculate Price based on weight */
+  int postage = base_cost + (GET_OBJ_WEIGHT(obj) * per_weight);
+
   /* Check weight limit */
   if (GET_OBJ_WEIGHT(obj) > max_mail_weight) {
     send_to_char(ch, "That item is too heavy to mail.\r\n");
@@ -103,6 +115,11 @@ ACMD(do_mailitem) {
   /* Check if the item type is allowed */
   if (ILLEGAL_MAIL_OBJ(obj)) {
     send_to_char(ch, "You can't mail containers, food, or drink.\r\n");
+    return;
+  }
+
+  if (GET_GOLD(ch) < postage) {
+    send_to_char(ch, "It would cost you %d gold coins to mail that, but you don't have enough.\r\n", postage);
     return;
   }
 
@@ -120,8 +137,9 @@ ACMD(do_mailitem) {
   /* Remove the item from the player */
   obj_from_char(obj);
   extract_obj(obj);
-
+  GET_GOLD(ch) -= postage;
   send_to_char(ch, "You have successfully mailed the item.\r\n");
+  send_to_char(ch, "You pay %d gold coins in postage.\r\n", postage);
 }
 
 /*

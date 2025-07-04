@@ -439,8 +439,9 @@
 #define ITEM_NOSELL           16   /**< Shopkeepers won't touch it */
 #define ITEM_QUEST            17   /**< Item is a quest item         */
 #define ITEM_UNIQUE_SAVE      18   /**< Item is a unique save item */
+#define ITEM_NOMAIL          19   /**< Item cannot be mailed */
 /** Total number of item flags */
-#define NUM_ITEM_FLAGS    19
+#define NUM_ITEM_FLAGS    20
 
 /* Modifier constants used with obj affects ('A' fields) */
 #define APPLY_NONE              0	/**< No effect			*/
