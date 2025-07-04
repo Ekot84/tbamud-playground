@@ -349,7 +349,9 @@ static void list_one_char(struct char_data *i, struct char_data *ch)
   if (IS_NPC(i))
     send_to_char(ch, "%c%s", UPPER(*i->player.short_descr), i->player.short_descr + 1);
   else
-    send_to_char(ch, "%s%s%s", i->player.name, *GET_TITLE(i) ? " " : "", GET_TITLE(i));
+    send_to_char(ch, "%s%s%s",   i->player.name,
+  (GET_TITLE(i) && *GET_TITLE(i)) ? " " : "",
+  GET_TITLE(i) ? GET_TITLE(i) : "");
 
   if (AFF_FLAGGED(i, AFF_INVISIBLE))
     send_to_char(ch, " (invisible)");

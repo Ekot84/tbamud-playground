@@ -178,7 +178,6 @@ ACMD(do_collectitem) {
       continue;
     }
 
-    /* Attach extra description label */
 /* Attach extra description label */
 struct extra_descr_data *new_descr;
 CREATE(new_descr, struct extra_descr_data, 1);
@@ -195,7 +194,14 @@ snprintf(buf, sizeof(buf),
   *entry.message ? entry.message : "(none)"
 );
 
-parcel->action_description = strdup(buf);
+  //parcel->action_description = strdup(buf);
+  new_descr->keyword = strdup("parcel label tag");
+  new_descr->description = strdup(buf);
+  new_descr->next = parcel->ex_description;
+  parcel->ex_description = new_descr;
+
+  /* Keep standard long description for when it lies in the room */
+  parcel->description = strdup("A sturdy parcel wrapped in twine has been left here.");
 
 
 
