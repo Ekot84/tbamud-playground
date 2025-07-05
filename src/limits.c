@@ -246,16 +246,42 @@ void gain_exp(struct char_data *ch, int gain)
       is_altered = TRUE;
     }
 
-    if (is_altered) {
-      mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE, "%s advanced %d level%s to level %d.",
-		GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
-      if (num_levels == 1)
-        send_to_char(ch, "You rise a level!\r\n");
-      else
-	send_to_char(ch, "You rise %d levels!\r\n", num_levels);
-      if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
-        run_autowiz();
+if (is_altered) {
+  mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE,
+         "%s advanced %d level%s to level %d.",
+         GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
+
+  if (num_levels == 1) {
+    send_to_char(ch, "You rise a level!\r\n");
+    if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+      broadcast_game_message(
+        "%s[ %s%s has risen a level.%s ]%s",
+        CCBLU(ch, C_NRM),
+        CCMAG(ch, C_NRM),
+        GET_NAME(ch),
+        CCBLU(ch, C_NRM),
+        CCNRM(ch, C_NRM)
+      );
     }
+  } else {
+    send_to_char(ch, "You rise %d levels!\r\n", num_levels);
+    if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+      broadcast_game_message(
+        "%s[ %s%s has risen %d levels.%s ]%s",
+        CCBLU(ch, C_NRM),
+        CCMAG(ch, C_NRM),
+        GET_NAME(ch),
+        CCBLU(ch, C_NRM),
+        CCNRM(ch, C_NRM),
+        num_levels
+      );
+    }
+  }
+
+  if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
+    run_autowiz();
+}
+
   } else if (gain < 0) {
     gain = MAX(-CONFIG_MAX_EXP_LOSS, gain);	/* Cap max exp lost per death */
     GET_EXP(ch) += gain;
@@ -280,7 +306,7 @@ void gain_exp_regardless(struct char_data *ch, int gain)
 
   if (!IS_NPC(ch)) {
     while (GET_LEVEL(ch) < LVL_IMPL &&
-	GET_EXP(ch) >= level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1)) {
+           GET_EXP(ch) >= level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1)) {
       GET_LEVEL(ch) += 1;
       num_levels++;
       advance_level(ch);
@@ -288,17 +314,47 @@ void gain_exp_regardless(struct char_data *ch, int gain)
     }
 
     if (is_altered) {
-      mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE, "%s advanced %d level%s to level %d.",
-		GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
-      if (num_levels == 1)
+      mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE,
+             "%s advanced %d level%s to level %d.",
+             GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
+
+      if (num_levels == 1) {
         send_to_char(ch, "You rise a level!\r\n");
-      else
-	send_to_char(ch, "You rise %d levels!\r\n", num_levels);
+
+        if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+          broadcast_game_message(
+            "%s[ %s%s has risen a level.%s ]%s",
+            CCBLU(ch, C_NRM),
+            CCMAG(ch, C_NRM),
+            GET_NAME(ch),
+            CCBLU(ch, C_NRM),
+            CCNRM(ch, C_NRM)
+          );
+        }
+      } else {
+        send_to_char(ch, "You rise %d levels!\r\n", num_levels);
+
+        if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+          broadcast_game_message(
+            "%s[ %s%s has risen %d levels.%s ]%s",
+            CCBLU(ch, C_NRM),
+            CCMAG(ch, C_NRM),
+            GET_NAME(ch),
+            CCBLU(ch, C_NRM),
+            CCNRM(ch, C_NRM),
+            num_levels
+          );
+        }
+      }
+
+      if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
+        run_autowiz();
     }
   }
-  if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
-    run_autowiz();
 }
+
+
+
 
 void gain_condition(struct char_data *ch, int condition, int value)
 {

@@ -1763,6 +1763,14 @@ void nanny(struct descriptor_data *d, char *arg)
       case '1':
         enter_player_game(d);
         send_to_char(d->character, "%s", CONFIG_WELC_MESSG);
+        if (!AFF_FLAGGED(d->character, AFF_INVISIBLE) && GET_INVIS_LEV(d->character) == 0) {
+          broadcast_game_message("%s[ %s%s has entered the game.%s ]%s",
+            CCBLU(d->character, C_NRM),
+            CCMAG(d->character, C_SPR),
+            GET_NAME(d->character),
+            CCBLU(d->character, C_NRM),
+            CCNRM(d->character, C_NRM));
+        }
   
         if (!PLR_FLAGGED(d->character, PLR_LOADROOM))
           GET_LOADROOM(d->character) = NOWHERE;

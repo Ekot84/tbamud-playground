@@ -1554,3 +1554,21 @@ void remove_from_string(char *string, const char *to_remove)
     }
     
 }
+
+void broadcast_game_message(const char *fmt, ...)
+{
+  va_list args;
+  char buf[MAX_STRING_LENGTH];
+  struct descriptor_data *d;
+
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+
+  for (d = descriptor_list; d; d = d->next) {
+    if (STATE(d) != CON_PLAYING || !d->character)
+      continue;
+
+    send_to_char(d->character, "%s\r\n", buf);
+  }
+}

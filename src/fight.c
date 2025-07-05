@@ -431,41 +431,45 @@ void die(struct char_data * ch, struct char_data * killer)
 }
 
 
+/* Define a scaling factor to control max XP per kill relative to level.
+ * For example, if you set LEVEL_EXP_MULTIPLIER to 2, players can gain
+ * at most 2 levels worth of XP from a single kill.
+ */
+#define LEVEL_EXP_MULTIPLIER 0.2
+
 long find_exp(struct char_data * ch, struct char_data * victim)
 {
   long exp;
   int number_killed;
-  
-  /* For Now BUT need to rewritten --Eko */
-    exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim));
-    
-  /*if(IS_REMORT(ch)) {
-    exp = (level_exp(ch_class, GET_LEVEL(victim)+1) - level_exp(ch_class, GET_LEVEL(victim))) / 10;
-    exp = MIN(exp, ((level_exp(ch_class, (100)) - level_exp(ch_class, 99)) / 4)); */
-  //if {
-   // exp = (level_exp(ch_class, GET_LEVEL(victim)+1) - level_exp(ch_class, GET_LEVEL(victim))) / 20;
-    //exp = MIN(exp, ((level_exp(ch_class, (GET_LEVEL(ch)+1)) - level_exp(ch_class, GET_LEVEL(ch))) / 10));
-  //}
 
-  //if (((GET_LEVEL(ch) - GET_LEVEL(victim)) > 75) && GET_LEVEL(ch) > GET_LEVEL(victim))
-    //exp /= (GET_LEVEL(ch)-GET_LEVEL(victim));
-   
-  /* no exp for a player :P */
+  /* No XP for killing players */
   if (!IS_NPC(victim))
     return 0;
 
-  //if (IS_NPC(victim) && MOB_FLAGGED(victim, MOB_SUMMONED))
-    //return 1;
+  /* Base XP is the victim's set exp, capped by CONFIG_MAX_EXP_GAIN */
+  exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim));
 
-  /* mob kill memory*/
+  /* If the attacker is a player and victim is a mob, apply kill memory scaling */
   if (!IS_NPC(ch) && IS_NPC(victim)) {
-    
-    /* min of 22 to produce a max of 77 percent later on */
+    /* Limit how much XP decreases for repeat kills */
     number_killed = MIN(22, kills_limit_xpgain(ch, victim, exp));
-    if(GET_LEVEL(ch) > 18) 
-      exp = exp * (1 - (number_killed * .035));
+
+    if (GET_LEVEL(ch) > 18)
+      exp = exp * (1 - (number_killed * 0.035));
+
     exp = MAX(0, exp);
   }
+
+  /* Cap XP reward so you can't get too much XP per kill at low levels */
+  long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
+  long cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
+
+  /* If the cap would be less than CONFIG_MAX_EXP_GAIN, allow at least that much */
+  if (cap < CONFIG_MAX_EXP_GAIN)
+    cap = CONFIG_MAX_EXP_GAIN;
+
+  /* Apply the cap */
+  exp = MIN(exp, cap);
 
   return exp;
 }

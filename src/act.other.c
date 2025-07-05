@@ -55,6 +55,17 @@ ACMD(do_quit)
     if (GET_QUEST_TIME(ch) != -1)
       quest_timeout(ch);
 
+    if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+    broadcast_game_message(
+      "%s[ %s%s has left the world.%s ]%s",
+      CCBLU(ch, C_NRM),
+      CCMAG(ch, C_NRM),
+      GET_NAME(ch),
+      CCBLU(ch, C_NRM),
+      CCNRM(ch, C_NRM)
+    );
+  }
+
     send_to_char(ch, "Goodbye, friend.. Come back soon!\r\n");
 
     /* We used to check here for duping attempts, but we may as well do it right
