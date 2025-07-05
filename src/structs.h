@@ -470,6 +470,8 @@
 /** Total number of applies */
 #define NUM_APPLIES   22
 
+#define LEVEL_EXP_MULTIPLIER 0.2 /**< Multiplier for exp per level */
+
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/
 #define CONT_PICKPROOF      (1 << 1)	/**< Container is pickproof	*/

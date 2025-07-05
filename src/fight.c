@@ -431,48 +431,45 @@ void die(struct char_data * ch, struct char_data * killer)
 }
 
 
-/* Define a scaling factor to control max XP per kill relative to level.
- * For example, if you set LEVEL_EXP_MULTIPLIER to 2, players can gain
- * at most 2 levels worth of XP from a single kill.
- */
-#define LEVEL_EXP_MULTIPLIER 0.2
-
-long find_exp(struct char_data * ch, struct char_data * victim)
+/* Returns the amount of XP a character gains for killing a victim */
+long find_exp(struct char_data *ch, struct char_data *victim)
 {
   long exp;
   int number_killed;
 
-  /* No XP for killing players */
+  /* No XP for killing other players */
   if (!IS_NPC(victim))
     return 0;
 
-  /* Base XP is the victim's set exp, capped by CONFIG_MAX_EXP_GAIN */
+  /* Base XP is victim's configured XP, capped by CONFIG_MAX_EXP_GAIN */
   exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim));
 
   /* If the attacker is a player and victim is a mob, apply kill memory scaling */
   if (!IS_NPC(ch) && IS_NPC(victim)) {
-    /* Limit how much XP decreases for repeat kills */
-    number_killed = MIN(22, kills_limit_xpgain(ch, victim, exp));
+    /*
+     * Retrieve how many times this character has killed this NPC before.
+     * The number is capped at 15 to avoid excessive penalties.
+     */
+    number_killed = MIN(15, kills_limit_xpgain(ch, victim, exp));
 
+    /*
+     * For each prior kill, reduce XP by 2%.
+     * Example:
+     *   1 kill  = -2% XP
+     *   5 kills = -10% XP
+     *   15 kills = -30% XP (maximum reduction)
+     */
     if (GET_LEVEL(ch) > 18)
-      exp = exp * (1 - (number_killed * 0.035));
+      exp = exp * (1 - (number_killed * 0.02));
 
+    /* Make sure XP never goes negative */
     exp = MAX(0, exp);
   }
 
-  /* Cap XP reward so you can't get too much XP per kill at low levels */
-  long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
-  long cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
-
-  /* If the cap would be less than CONFIG_MAX_EXP_GAIN, allow at least that much */
-  if (cap < CONFIG_MAX_EXP_GAIN)
-    cap = CONFIG_MAX_EXP_GAIN;
-
-  /* Apply the cap */
-  exp = MIN(exp, cap);
-
   return exp;
 }
+
+
 
 static void perform_group_gain(struct char_data *ch, int base,
 			     struct char_data *victim)
@@ -526,38 +523,41 @@ static void group_gain(struct char_data *ch, struct char_data *victim)
 static void solo_gain(struct char_data *ch, struct char_data *victim)
 {
   long exp, happy_exp, expflow, explow, exptemp;
+
   exp = find_exp(ch, victim);
-  //exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim) / 3);
 
-  /* Calculate level-difference bonus */
-  /*if (IS_NPC(ch))
-    exp += MAX(0, (exp * MIN(4, (GET_LEVEL(victim) - GET_LEVEL(ch)))) / 8);
-  else
-    exp += MAX(0, (exp * MIN(8, (GET_LEVEL(victim) - GET_LEVEL(ch)))) / 8);
-
-  exp = MAX(exp, 1);*/
-
+  /* Happy hour */
   if (IS_HAPPYHOUR && IS_HAPPYEXP) {
-    happy_exp = exp + (int)((float)exp * ((float)HAPPY_EXP / (float)(100)));
+    happy_exp = exp + (int)((float)exp * ((float)HAPPY_EXP / 100.0f));
     exp = MAX(happy_exp, 1);
   }
 
+  /* Randomization, only if >10 xp */
   if (exp > 10) {
-        /* Random Exp per Kill */
     expflow = (exp / 10);
     explow = (exp - expflow);
-    exptemp = rand_number(explow, exp);
-    exp = exptemp;
-    send_to_char(ch, "\tgYou receive \tG%ld \tgexperience points.\tn\r\n", exp);
-  } else if (exp < 10) {
-      send_to_char(ch, "\tgYou receive \tG%ld \tgexperience points.\tn\r\n", exp);
-  } else {
-    send_to_char(ch, "\tgYou receive \tGone\tg lousy experience point.\tn\r\n");
+    exp = rand_number(explow, exp);
   }
 
+  /* Save current EXP to calculate actual gain after cap */
+  long before_exp = GET_EXP(ch);
+
   gain_exp(ch, exp);
+
+  long gained = GET_EXP(ch) - before_exp;
+
+  /* Output to player */
+  if (gained > 1) {
+    send_to_char(ch, "\tgYou receive \tG%ld \tgexperience points.\tn\r\n", gained);
+  } else if (gained == 1) {
+    send_to_char(ch, "\tgYou receive \tGone\tg experience point.\tn\r\n");
+  } else {
+    send_to_char(ch, "\tgYou receive no experience.\tn\r\n");
+  }
+
   change_alignment(ch, victim);
 }
+
 
 static char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural)
 {

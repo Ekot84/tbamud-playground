@@ -232,75 +232,115 @@ void gain_exp(struct char_data *ch, int gain)
     GET_EXP(ch) += gain;
     return;
   }
+
   if (gain > 0) {
     if ((IS_HAPPYHOUR) && (IS_HAPPYEXP))
       gain += (int)((float)gain * ((float)HAPPY_EXP / (float)(100)));
 
-    gain = MIN(CONFIG_MAX_EXP_GAIN, gain);	/* put a cap on the max gain per kill */
+    /* Calculate level cap for this character */
+    long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
+    long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
+
+    /* Determine final cap as the smallest of TNL cap and config cap */
+    long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
+
+    /* Debug output */
+    send_to_char(ch,
+      "\r\n[DEBUG] TNL=%ld  TNL Cap=%ld  Config Cap=%d  Final Cap=%ld  XP Gain(before cap)=%d\r\n",
+      tnl, tnl_cap, CONFIG_MAX_EXP_GAIN, final_cap, gain
+    );
+
+    /* Apply final cap */
+    gain = MIN(gain, final_cap);
+
     GET_EXP(ch) += gain;
+
     while (GET_LEVEL(ch) < LVL_IMMORT - CONFIG_NO_MORT_TO_IMMORT &&
-	GET_EXP(ch) >= level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1)) {
+           GET_EXP(ch) >= level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1)) {
       GET_LEVEL(ch) += 1;
       num_levels++;
       advance_level(ch);
       is_altered = TRUE;
     }
 
-if (is_altered) {
-  mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE,
-         "%s advanced %d level%s to level %d.",
-         GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
+    if (is_altered) {
+      mudlog(BRF, MAX(LVL_IMMORT, GET_INVIS_LEV(ch)), TRUE,
+             "%s advanced %d level%s to level %d.",
+             GET_NAME(ch), num_levels, num_levels == 1 ? "" : "s", GET_LEVEL(ch));
 
-  if (num_levels == 1) {
-    send_to_char(ch, "You rise a level!\r\n");
-    if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
-      broadcast_game_message(
-        "%s[ %s%s has risen a level.%s ]%s",
-        CCBLU(ch, C_NRM),
-        CCMAG(ch, C_NRM),
-        GET_NAME(ch),
-        CCBLU(ch, C_NRM),
-        CCNRM(ch, C_NRM)
-      );
+      if (num_levels == 1) {
+        send_to_char(ch, "You rise a level!\r\n");
+        if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+          broadcast_game_message(
+            "%s[ %s%s has risen a level.%s ]%s",
+            CCBLU(ch, C_NRM),
+            CCMAG(ch, C_NRM),
+            GET_NAME(ch),
+            CCBLU(ch, C_NRM),
+            CCNRM(ch, C_NRM)
+          );
+        }
+      } else {
+        send_to_char(ch, "You rise %d levels!\r\n", num_levels);
+        if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
+          broadcast_game_message(
+            "%s[ %s%s has risen %d levels.%s ]%s",
+            CCBLU(ch, C_NRM),
+            CCMAG(ch, C_NRM),
+            GET_NAME(ch),
+            CCBLU(ch, C_NRM),
+            CCNRM(ch, C_NRM),
+            num_levels
+          );
+        }
+      }
+
+      if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
+        run_autowiz();
     }
-  } else {
-    send_to_char(ch, "You rise %d levels!\r\n", num_levels);
-    if (!AFF_FLAGGED(ch, AFF_INVISIBLE) && GET_INVIS_LEV(ch) == 0) {
-      broadcast_game_message(
-        "%s[ %s%s has risen %d levels.%s ]%s",
-        CCBLU(ch, C_NRM),
-        CCMAG(ch, C_NRM),
-        GET_NAME(ch),
-        CCBLU(ch, C_NRM),
-        CCNRM(ch, C_NRM),
-        num_levels
-      );
-    }
+
+  } else if (gain < 0) {
+    gain = MAX(-CONFIG_MAX_EXP_LOSS, gain); /* Cap max exp lost per death */
+    GET_EXP(ch) += gain;
+    if (GET_EXP(ch) < 0)
+      GET_EXP(ch) = 0;
   }
 
   if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
     run_autowiz();
 }
 
-  } else if (gain < 0) {
-    gain = MAX(-CONFIG_MAX_EXP_LOSS, gain);	/* Cap max exp lost per death */
-    GET_EXP(ch) += gain;
-    if (GET_EXP(ch) < 0)
-      GET_EXP(ch) = 0;
-  }
-  if (GET_LEVEL(ch) >= LVL_IMMORT && !PLR_FLAGGED(ch, PLR_NOWIZLIST))
-    run_autowiz();
-  }
+
 
 void gain_exp_regardless(struct char_data *ch, int gain)
 {
   int is_altered = FALSE;
   int num_levels = 0;
 
+  /* Apply Happy Hour bonus if active */
   if ((IS_HAPPYHOUR) && (IS_HAPPYEXP))
     gain += (int)((float)gain * ((float)HAPPY_EXP / (float)(100)));
 
+  /* Calculate level cap for this character */
+  if (!IS_NPC(ch)) {
+    long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
+    long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
+
+    /* Determine final cap as the smallest of TNL cap and config cap */
+    long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
+
+    /* Debug output */
+    send_to_char(ch,
+      "\r\n[DEBUG] TNL=%ld  TNL Cap=%ld  Config Cap=%d  Final Cap=%ld  XP Gain(before cap)=%d\r\n",
+      tnl, tnl_cap, CONFIG_MAX_EXP_GAIN, final_cap, gain
+    );
+
+    /* Apply cap */
+    gain = MIN(gain, final_cap);
+  }
+
   GET_EXP(ch) += gain;
+
   if (GET_EXP(ch) < 0)
     GET_EXP(ch) = 0;
 
@@ -352,6 +392,8 @@ void gain_exp_regardless(struct char_data *ch, int gain)
     }
   }
 }
+
+
 
 
 
