@@ -60,6 +60,9 @@
 #define PFDEF_COMPQUESTS        0
 #define PFDEF_CURRQUEST         NOTHING
 #define PFDEF_LASTMOTD          0 
-#define PFDEF_LASTNEWS          0 
+#define PFDEF_LASTNEWS          0
+#define PFDEF_KILLS_TOTAL        0
+#define PFDEF_KILLS_LEGIT_TOTAL  0
+#define PFDEF_KILLS_UNIQUE       0
 
 #endif /* _PFDEFAULTS_H_ */

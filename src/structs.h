@@ -952,61 +952,14 @@ struct char_special_data
   struct char_special_data_saved saved; /**< Constants saved for PCs. */
 };
 
-/** Data only needed by PCs, and needs to be saved to disk. */
-struct player_special_data_saved
-{
-  byte skills[MAX_SKILLS+1]; /**< Character skills. */
-  #define MAX_KILL_MEMORY 50
-  int  kills_vnum[MAX_KILL_MEMORY]; /* Virtual numbers of mobs killed */
-  byte kills_amount[MAX_KILL_MEMORY];/* Number of mobs of type killed */
-  byte kills_curpos;       /* Current position in array          */
-  int wimp_level;         /**< Below this # of hit points, flee! */
-  byte freeze_level;      /**< Level of god who froze char, if any */
-  sh_int invis_level;     /**< level of invisibility */
-  room_vnum load_room;    /**< Which room to load PC into */
-  int pref[PR_ARRAY_MAX]; /**< preference flags */
-  ubyte bad_pws;          /**< number of bad login attempts */
-  sbyte conditions[3];    /**< Drunk, hunger, and thirst */
-  struct txt_block *comm_hist[NUM_HIST]; /**< Communication history */
-  ubyte page_length;      /**< Max number of rows of text to send at once */
-  ubyte screen_width;     /**< How wide the display page is */
-  int spells_to_learn;    /**< Remaining number of practice sessions */
-  int olc_zone;           /**< Current olc permissions */
-  int questpoints;        /**< Number of quest points earned */
-  qst_vnum *completed_quests;   /**< Quests completed              */
-  int    num_completed_quests;  /**< Number completed              */
-  int    current_quest;         /**< vnum of current quest         */
-  int    quest_time;            /**< time left on current quest    */
-  int    quest_counter;         /**< Count of targets left to get  */
-  time_t   lastmotd;            /**< Last time player read motd */
-  time_t   lastnews;            /**< Last time player read news */
-};
-
-/** Specials needed only by PCs, not NPCs.  Space for this structure is
- * not allocated in memory for NPCs, but it is for PCs and the portion
- * of it labelled 'saved' is saved in the players file. */
-struct player_special_data
-{
-  struct player_special_data_saved saved; /**< Information to be saved. */
-
-  char *poofin;  /**< Description displayed to room on arrival of a god. */
-  char *poofout; /**< Description displayed to room at a god's exit. */
-  struct alias_data *aliases; /**< Command aliases			*/
-  long last_tell;        /**< idnum of PC who last told this PC, used to reply */
-  void *last_olc_targ;   /**< ? Currently Unused ? */
-  int last_olc_mode;     /**< ? Currently Unused ? */
-  char *host;            /**< Resolved hostname, or ip, for player. */
-  int buildwalk_sector;  /**< Default sector type for buildwalk */
-};
-
 /** Player statistics structure.
  * This is used to track various statistics about a player character's
  * actions and achievements in the game. */
 struct player_statistics {
   /* Combat */
-  int kills_total;
-  int kills_legit_total;
-  int kills_unique_mobs;
+  int kills_total;  /**< Total number of mobs killed */
+  int kills_legit_total;  /** Total number of mobs killed that were not dupes */
+  int kills_unique_mobs; /** Total number of unique mobs killed */
   int deaths;
   uint32_t critical_hits;
   int times_resurrected;
@@ -1045,6 +998,54 @@ struct player_statistics {
   /* Progression */
   uint64_t total_exp_collected;
   int hours_played; /* Räknas t.ex. i save-char varje timme */
+};
+
+/** Data only needed by PCs, and needs to be saved to disk. */
+struct player_special_data_saved
+{
+  byte skills[MAX_SKILLS+1]; /**< Character skills. */
+  #define MAX_KILL_MEMORY 50
+  int  kills_vnum[MAX_KILL_MEMORY]; /* Virtual numbers of mobs killed */
+  byte kills_amount[MAX_KILL_MEMORY];/* Number of mobs of type killed */
+  byte kills_curpos;       /* Current position in array          */
+  int wimp_level;         /**< Below this # of hit points, flee! */
+  byte freeze_level;      /**< Level of god who froze char, if any */
+  sh_int invis_level;     /**< level of invisibility */
+  room_vnum load_room;    /**< Which room to load PC into */
+  int pref[PR_ARRAY_MAX]; /**< preference flags */
+  ubyte bad_pws;          /**< number of bad login attempts */
+  sbyte conditions[3];    /**< Drunk, hunger, and thirst */
+  struct txt_block *comm_hist[NUM_HIST]; /**< Communication history */
+  ubyte page_length;      /**< Max number of rows of text to send at once */
+  ubyte screen_width;     /**< How wide the display page is */
+  int spells_to_learn;    /**< Remaining number of practice sessions */
+  int olc_zone;           /**< Current olc permissions */
+  int questpoints;        /**< Number of quest points earned */
+  qst_vnum *completed_quests;   /**< Quests completed              */
+  int    num_completed_quests;  /**< Number completed              */
+  int    current_quest;         /**< vnum of current quest         */
+  int    quest_time;            /**< time left on current quest    */
+  int    quest_counter;         /**< Count of targets left to get  */
+  time_t   lastmotd;            /**< Last time player read motd */
+  time_t   lastnews;            /**< Last time player read news */
+  struct player_statistics stats; /**< Player statistics */
+};
+
+/** Specials needed only by PCs, not NPCs.  Space for this structure is
+ * not allocated in memory for NPCs, but it is for PCs and the portion
+ * of it labelled 'saved' is saved in the players file. */
+struct player_special_data
+{
+  struct player_special_data_saved saved; /**< Information to be saved. */
+
+  char *poofin;  /**< Description displayed to room on arrival of a god. */
+  char *poofout; /**< Description displayed to room at a god's exit. */
+  struct alias_data *aliases; /**< Command aliases			*/
+  long last_tell;        /**< idnum of PC who last told this PC, used to reply */
+  void *last_olc_targ;   /**< ? Currently Unused ? */
+  int last_olc_mode;     /**< ? Currently Unused ? */
+  char *host;            /**< Resolved hostname, or ip, for player. */
+  int buildwalk_sector;  /**< Default sector type for buildwalk */
 };
 
 /** Special data used by NPCs, not PCs */

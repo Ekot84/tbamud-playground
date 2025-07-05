@@ -616,6 +616,53 @@ do                                                              \
 /** The type of quest ch is currently participating in. */
 #define GET_QUEST_TYPE(ch)      (real_quest(GET_QUEST((ch))) != NOTHING ? aquest_table[real_quest(GET_QUEST((ch)))].type : AQ_UNDEFINED )
 
+/** Stats. */
+#define GET_STATISTICS(ch)                    ((ch)->player_specials->saved.stats)
+
+/* Combat */
+#define GET_KILLS_TOTAL(ch)                   (GET_STATISTICS(ch).kills_total)
+#define GET_KILLS_LEGIT_TOTAL(ch)             (GET_STATISTICS(ch).kills_legit_total)
+#define GET_KILLS_UNIQUE_MOBS(ch)             (GET_STATISTICS(ch).kills_unique_mobs)
+#define GET_DEATHS(ch)                        (GET_STATISTICS(ch).deaths)
+#define GET_CRITICAL_HITS(ch)                 (GET_STATISTICS(ch).critical_hits)
+#define GET_TIMES_RESURRECTED(ch)             (GET_STATISTICS(ch).times_resurrected)
+
+/* Damage & Healing */
+#define GET_TOTAL_DAMAGE_DONE(ch)             (GET_STATISTICS(ch).total_damage_done)
+#define GET_TOTAL_PHYSICAL_DAMAGE_DONE(ch)    (GET_STATISTICS(ch).total_physical_damage_done)
+#define GET_TOTAL_MAGIC_DAMAGE_DONE(ch)       (GET_STATISTICS(ch).total_magic_damage_done)
+#define GET_TOTAL_HEALING_DONE(ch)            (GET_STATISTICS(ch).total_healing_done)
+
+/* Loot & Items */
+#define GET_ITEMS_LOOTED(ch)                  (GET_STATISTICS(ch).items_looted)
+#define GET_ITEMS_LEGIT_LOOTED(ch)            (GET_STATISTICS(ch).items_legit_looted)
+#define GET_ITEMS_DONATED(ch)                 (GET_STATISTICS(ch).items_donated)
+#define GET_ITEMS_LEGIT_DONATED(ch)           (GET_STATISTICS(ch).items_legit_donated)
+#define GET_ITEMS_SOLD(ch)                    (GET_STATISTICS(ch).items_sold)
+#define GET_ITEMS_LEGIT_SOLD(ch)              (GET_STATISTICS(ch).items_legit_sold)
+#define GET_ITEMS_JUNKED(ch)                  (GET_STATISTICS(ch).items_junked)
+#define GET_ITEMS_LEGIT_JUNKED(ch)            (GET_STATISTICS(ch).items_legit_junked)
+#define GET_ITEMS_BOUGHT(ch)                  (GET_STATISTICS(ch).items_bought)
+#define GET_ITEMS_LEGIT_BOUGHT(ch)            (GET_STATISTICS(ch).items_legit_bought)
+#define GET_SCROLLS_USED(ch)                  (GET_STATISTICS(ch).scrolls_used)
+#define GET_POTIONS_USED(ch)                  (GET_STATISTICS(ch).potions_used)
+
+/* Currency */
+#define GET_GOLD_EARNED(ch)                   (GET_STATISTICS(ch).gold_earned)
+#define GET_GOLD_SPENT(ch)                    (GET_STATISTICS(ch).gold_spent)
+
+/* Quests */
+#define GET_QUESTS_COMPLETED(ch)              (GET_STATISTICS(ch).quests_completed)
+#define GET_QUESTS_FAILED(ch)                 (GET_STATISTICS(ch).quests_failed)
+
+/* Exploration */
+#define GET_ZONES_DISCOVERED(ch)              (GET_STATISTICS(ch).zones_discovered)
+
+/* Progression */
+#define GET_TOTAL_EXP_COLLECTED(ch)           (GET_STATISTICS(ch).total_exp_collected)
+#define GET_HOURS_PLAYED(ch)                  (GET_STATISTICS(ch).hours_played)
+
+
 /** The current skill level of ch for skill i. */
 #define GET_SKILL(ch, i)	CHECK_PLAYER_SPECIAL((ch), ((ch)->player_specials->saved.skills[i]))
 /** Copy the current skill level i of ch to pct. */

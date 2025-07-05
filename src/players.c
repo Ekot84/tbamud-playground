@@ -398,6 +398,15 @@ int load_char(const char *name, struct char_data *ch)
 	    sscanf(line, "%d %d", &num, &num2);
     } while (num != (MAX_KILL_MEMORY) && (num2 != 50) && (num3 != 0));
 	}
+          else if (!strcmp(tag, "KillsTotal")) {
+          GET_KILLS_TOTAL(ch) = atoi(line);
+        }
+        else if (!strcmp(tag, "KillsLegit")) {
+          GET_KILLS_LEGIT_TOTAL(ch) = atoi(line);
+        }
+        else if (!strcmp(tag, "KillsUnique")) {
+          GET_KILLS_UNIQUE_MOBS(ch) = atoi(line);
+        }
     break;
       case 'L':
 	     if (!strcmp(tag, "Last"))	ch->player.time.logon	= atol(line);
@@ -690,6 +699,18 @@ void save_char(struct char_data * ch)
     fprintf(fl, "%d\n", NOTHING);
   }
   if (GET_QUEST(ch)        != PFDEF_CURRQUEST)  fprintf(fl, "Qcur: %d\n", GET_QUEST(ch));
+
+  if (GET_KILLS_TOTAL(ch) != 0)
+  fprintf(fl, "KillsTotal: %d\n", GET_KILLS_TOTAL(ch));
+
+  if (GET_KILLS_LEGIT_TOTAL(ch) != 0)
+  fprintf(fl, "KillsLegit: %d\n", GET_KILLS_LEGIT_TOTAL(ch));
+
+  if (GET_KILLS_UNIQUE_MOBS(ch) != 0)
+  fprintf(fl, "KillsUnique: %d\n", GET_KILLS_UNIQUE_MOBS(ch));
+
+  if (GET_DEATHS(ch) != 0)
+  fprintf(fl, "Deaths: %d\n", GET_DEATHS(ch));
 
  if (SCRIPT(ch)) {
    for (t = TRIGGERS(SCRIPT(ch)); t; t = t->next)

@@ -400,12 +400,36 @@ struct char_data *i;
 void die(struct char_data * ch, struct char_data * killer)
 {
   gain_exp(ch, -(GET_EXP(ch) / 2));
+
   if (!IS_NPC(ch)) {
     REMOVE_BIT_AR(PLR_FLAGS(ch), PLR_KILLER);
     REMOVE_BIT_AR(PLR_FLAGS(ch), PLR_THIEF);
+    GET_DEATHS(ch)++;
   }
+
+  if (!IS_NPC(killer) && IS_NPC(ch)) {
+    GET_KILLS_TOTAL(killer)++;
+
+    int vnum = GET_MOB_VNUM(ch);
+    bool found = FALSE;
+    int kills_on_this_mob = 0;
+
+    for (struct kill_node *k = killer->kill_mem; k; k = k->next) {
+      if (k->vnum == vnum) {
+        kills_on_this_mob = k->amount;
+        found = TRUE;
+        break;
+      }
+    }
+
+    /* Example rule: only the first 10 kills on same mob count as legit */
+    if (kills_on_this_mob < 10)
+      GET_KILLS_LEGIT_TOTAL(killer)++;
+  }
+
   raw_kill(ch, killer);
 }
+
 
 long find_exp(struct char_data * ch, struct char_data * victim)
 {
