@@ -993,7 +993,8 @@ struct player_statistics {
   int quests_failed;
 
   /* Exploration */
-  int zones_discovered;
+  int zones_discovered; /**< Number of zones discovered */
+  //Zone exploration statistics is in player_special_data_saved.discovered_zones
 
   /* Progression */
   uint64_t total_exp_collected;
@@ -1008,6 +1009,9 @@ struct player_special_data_saved
   int  kills_vnum[MAX_KILL_MEMORY]; /* Virtual numbers of mobs killed */
   byte kills_amount[MAX_KILL_MEMORY];/* Number of mobs of type killed */
   byte kills_curpos;       /* Current position in array          */
+  #define MAX_DISCOVERED_ZONES 512
+  #define ZONE_FLAG_BYTES ((MAX_DISCOVERED_ZONES + 7) / 8)
+  uint8_t discovered_zones[ZONE_FLAG_BYTES];
   int wimp_level;         /**< Below this # of hit points, flee! */
   byte freeze_level;      /**< Level of god who froze char, if any */
   sh_int invis_level;     /**< level of invisibility */

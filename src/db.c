@@ -3749,10 +3749,8 @@ void init_char(struct char_data *ch)
   GET_NUM_QUESTS(ch) = 0;
   ch->player_specials->saved.completed_quests = NULL;
   GET_QUEST(ch) = NOTHING;
-  GET_KILLS_TOTAL(ch) = 0;
-  GET_KILLS_LEGIT_TOTAL(ch) = 0;
-  GET_KILLS_UNIQUE_MOBS(ch) = 0;
-  GET_DEATHS(ch) = 0;
+  GET_STATISTICS(ch) = (struct player_statistics){0};
+  CLEAR_ALL_ZONES_DISCOVERED(ch);
 
   ch->player.time.birth = time(0);
   ch->player.time.logon = time(0);

@@ -656,8 +656,15 @@ do                                                              \
 #define GET_QUESTS_FAILED(ch)                 (GET_STATISTICS(ch).quests_failed)
 
 /* Exploration */
-#define GET_ZONES_DISCOVERED(ch)              (GET_STATISTICS(ch).zones_discovered)
+#define GET_ZONES_DISCOVERED(ch)  (GET_STATISTICS(ch).zones_discovered)
+#define SET_ZONE_DISCOVERED(ch, zn) \
+  ((ch)->player_specials->saved.discovered_zones[(zn)/8] |= (1 << ((zn)%8)))
 
+#define IS_ZONE_DISCOVERED(ch, zn) \
+  ((ch)->player_specials->saved.discovered_zones[(zn)/8] & (1 << ((zn)%8)))
+
+#define CLEAR_ALL_ZONES_DISCOVERED(ch) \
+  memset((ch)->player_specials->saved.discovered_zones, 0, ZONE_FLAG_BYTES)
 /* Progression */
 #define GET_TOTAL_EXP_COLLECTED(ch)           (GET_STATISTICS(ch).total_exp_collected)
 #define GET_HOURS_PLAYED(ch)                  (GET_STATISTICS(ch).hours_played)

@@ -350,6 +350,11 @@ int load_char(const char *name, struct char_data *ch)
 	else if (!strcmp(tag, "Dex "))	ch->real_abils.dex	= atoi(line);
 	else if (!strcmp(tag, "Drnk"))	GET_COND(ch, DRUNK)	= atoi(line);
 	else if (!strcmp(tag, "Drol"))	GET_DAMROLL(ch)		= atoi(line);
+  else if (!strcmp(tag, "Deaths")) {
+          GET_DEATHS(ch) = atoi(line);
+          if (GET_DEATHS(ch) < 0)
+            GET_DEATHS(ch) = 0; /* Prevent negative deaths */
+    }
 	break;
 
       case 'E':
@@ -497,7 +502,23 @@ int load_char(const char *name, struct char_data *ch)
 	else if (!strcmp(tag, "Wimp"))	GET_WIMP_LEV(ch)	= atoi(line);
 	else if (!strcmp(tag, "Wis "))	ch->real_abils.wis	= atoi(line);
 	break;
-
+      case 'Z':
+        if (!strcmp(tag, "Zonedisc")) {
+          for (int i = 0; i < ZONE_FLAG_BYTES; i++) {
+          unsigned int byte;
+            if (sscanf(line + i * 2, "%02X", &byte) != 1) {
+            mudlog(NRM, LVL_GOD, TRUE, "SYSERR: Error parsing discovered zone byte %d in pfile %s", i, name);
+            byte = 0;
+          }
+        ch->player_specials->saved.discovered_zones[i] = (uint8_t)byte;
+      }
+    }
+        else if (!strcmp(tag, "Zonesdisc")) {
+        GET_ZONES_DISCOVERED(ch) = atoi(line);
+        if (GET_ZONES_DISCOVERED(ch) < 0)
+        GET_ZONES_DISCOVERED(ch) = 0; // safety
+    }
+  break;
       default:
 	sprintf(buf, "SYSERR: Unknown tag %s in pfile %s", tag, name);
       }
@@ -711,6 +732,15 @@ void save_char(struct char_data * ch)
 
   if (GET_DEATHS(ch) != 0)
   fprintf(fl, "Deaths: %d\n", GET_DEATHS(ch));
+
+  char hexbuf[ZONE_FLAG_BYTES * 2 + 1] = {0}; // clear buffert
+  for (int i = 0; i < ZONE_FLAG_BYTES; i++)
+    snprintf(hexbuf + i * 2, 3, "%02X", ch->player_specials->saved.discovered_zones[i]);
+
+  fprintf(fl, "Zonedisc: %s\n", hexbuf);
+
+  if (GET_ZONES_DISCOVERED(ch) != 0)
+  fprintf(fl, "Zonesdisc: %d\n", GET_ZONES_DISCOVERED(ch));
 
  if (SCRIPT(ch)) {
    for (t = TRIGGERS(SCRIPT(ch)); t; t = t->next)

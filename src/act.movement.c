@@ -285,7 +285,15 @@ int do_simple_move(struct char_data *ch, int dir, int need_specials_check)
   /*---------------------------------------------------------------------*/
   /* End: the leave operation. The character is now in the new room. */
 
-
+  /* Zone discovery check */
+  if (!IS_NPC(ch)) {
+    zone_rnum zn = world[going_to].zone;
+    if (!IS_ZONE_DISCOVERED(ch, zn)) {
+      SET_ZONE_DISCOVERED(ch, zn);
+      GET_ZONES_DISCOVERED(ch)++;
+      send_to_char(ch, "\tYYou have discovered a new zone!\tn\r\n");
+    }
+  }
   /* Begin: Post-move operations. */
   /*---------------------------------------------------------------------*/
   /* Post Move Trigger Checks: Check the new room for triggers.
