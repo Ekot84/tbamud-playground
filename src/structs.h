@@ -87,8 +87,12 @@
 #define ROOM_OLC           14   /**< (R) Modifyable/!compress */
 #define ROOM_BFS_MARK      15   /**< (R) breath-first srch mrk */
 #define ROOM_WORLDMAP      16   /**< World-map style maps here */
+#define ROOM_REGEN         17 /**< Room regenerates health/mana/stamina */
+#define ROOM_POISON        18 /**< Room is poisonous, causes damage over time */
+#define ROOM_MOVE_DRAIN    19 /**< Room drains movement points */
+#define ROOM_NO_RECALL     20 /**< Room does not allow recall spells */
 /** The total number of Room Flags */
-#define NUM_ROOM_FLAGS    17
+#define NUM_ROOM_FLAGS     21
 
 /* Zone info: Used in zone_data.zone_flags */
 #define ZONE_CLOSED       0  /**< Zone is closed - players cannot enter */
@@ -98,8 +102,42 @@
 #define ZONE_NOBUILD      4  /**< Building is not allowed in the zone */
 #define ZONE_NOASTRAL     5  /**< No teleportation magic will work to or from this zone */
 #define ZONE_WORLDMAP     6 /**< Whole zone uses the WORLDMAP by default */
+#define ZONE_MIDGAARD     7 /**< Midgaard zone, used for special handling in the game */
+#define ZONE_TIER1_TOWN   8 /**< Tier 1 Town, used for special handling in the game */
+#define ZONE_TIER2_TOWN   9 /**< Tier 2 Town, used for special handling in the game */
+#define ZONE_TIER3_TOWN  10 /**< Tier 3 Town, used for special handling in the game */
+#define ZONE_TIER4_TOWN  11 /**< Tier 4 Town, used for special handling in the game */
+#define ZONE_TIER5_TOWN  12 /**< Tier 5 Town, used for special handling in the game */
+#define ZONE_TIER1_AREA_1 13 /**< Tier 1 Area 1, used for special handling in the game */
+#define ZONE_TIER1_AREA_2 14 /**< Tier 1 Area 2, used for special handling in the game */
+#define ZONE_TIER1_AREA_3 15 /**< Tier 1 Area 3, used for special handling in the game */
+#define ZONE_TIER1_AREA_4 16 /**< Tier 1 Area 4, used for special handling in the game */
+#define ZONE_TIER1_AREA_5 17 /**< Tier 1 Area 5, used for special handling in the game */
+#define ZONE_TIER2_AREA_1 18 /**< Tier 2 Area 1, used for special handling in the game */
+#define ZONE_TIER2_AREA_2 19 /**< Tier 2 Area 2, used for special handling in the game */
+#define ZONE_TIER2_AREA_3 20 /**< Tier 2 Area 3, used for special handling in the game */
+#define ZONE_TIER2_AREA_4 21 /**< Tier 2 Area 4, used for special handling in the game */
+#define ZONE_TIER2_AREA_5 22 /**< Tier 2 Area 5, used for special handling in the game */
+#define ZONE_TIER3_AREA_1 23 /**< Tier 3 Area 1, used for special handling in the game */
+#define ZONE_TIER3_AREA_2 24 /**< Tier 3 Area 2, used for special handling in the game */
+#define ZONE_TIER3_AREA_3 25 /**< Tier 3 Area 3, used for special handling in the game */
+#define ZONE_TIER3_AREA_4 26 /**< Tier 3 Area 4, used for special handling in the game */
+#define ZONE_TIER3_AREA_5 27 /**< Tier 3 Area 5, used for special handling in the game */
+#define ZONE_TIER4_AREA_1 28 /**< Tier 4 Area 1, used for special handling in the game */
+#define ZONE_TIER4_AREA_2 29 /**< Tier 4 Area 2, used for special handling in the game */
+#define ZONE_TIER4_AREA_3 30 /**< Tier 4 Area 3, used for special handling in the game */
+#define ZONE_TIER4_AREA_4 31 /**< Tier 4 Area 4, used for special handling in the game */
+#define ZONE_TIER4_AREA_5 32 /**< Tier 4 Area 5, used for special handling in the game */
+#define ZONE_TIER5_AREA_1 33 /**< Tier 5 Area 1, used for special handling in the game */
+#define ZONE_TIER5_AREA_2 34 /**< Tier 5 Area 2, used for special handling in the game */
+#define ZONE_TIER5_AREA_3 35 /**< Tier 5 Area 3, used for special handling in the game */
+#define ZONE_TIER5_AREA_4 36 /**< Tier 5 Area 4, used for special handling in the game */
+#define ZONE_TIER5_AREA_5 37 /**< Tier 5 Area 5, used for special handling in the game */
+#define ZONE_INSTANCE     38 /**< Zone is an instanced copy (special handling) */
+#define ZONE_INSTANCE_PRIVATE 39 /**< Instance visible only to the owner/group */
+#define ZONE_INSTANCE_TEMP     40 /**< Temp instance, auto-clean up when empty */
 /** The total number of Zone Flags */
-#define NUM_ZONE_FLAGS    7
+#define NUM_ZONE_FLAGS    41
 
 /* Exit info: used in room_data.dir_option.exit_info */
 #define EX_ISDOOR    (1 << 0) /**< Exit is a door */
@@ -208,7 +246,7 @@
 #define MOB_SENTINEL        1   /**< Mob should not move */
 #define MOB_SCAVENGER       2   /**< Mob picks up stuff on the ground */
 #define MOB_ISNPC           3   /**< (R) Automatically set on all Mobs */
-#define MOB_AWARE	    4   /**< Mob can't be backstabbed */
+#define MOB_AWARE	          4   /**< Mob can't be backstabbed */
 #define MOB_AGGRESSIVE      5   /**< Mob auto-attacks everybody nearby */
 #define MOB_STAY_ZONE       6   /**< Mob shouldn't wander out of zone */
 #define MOB_WIMPY           7   /**< Mob flees if severely injured */
@@ -224,8 +262,15 @@
 #define MOB_NOBLIND        17   /**< Mob can't be blinded */
 #define MOB_NOKILL         18   /**< Mob can't be attacked */
 #define MOB_NOTDEADYET     19   /**< (R) Mob being extracted */
+#define MOB_ELITE          20   /**< Mob is an elite mob, special handling */
+#define MOB_BOSS_TIER_1    21 /**< Mob is a tier 1 boss mob, special handling */
+#define MOB_BOSS_TIER_2    22 /**< Mob is a tier 2 boss mob, special handling */
+#define MOB_BOSS_TIER_3    23 /**< Mob is a tier 3 boss mob, special handling */
+#define MOB_BOSS_TIER_4    24 /**< Mob is a tier 4 boss mob, special handling */
+#define MOB_BOSS_TIER_5    25 /**< Mob is a tier 5 boss mob, special handling */
+#define MOB_BOSS_INSTANCE  26 /**< Mob is a boss mob in an instance, special handling */
 
-#define NUM_MOB_FLAGS      19
+#define NUM_MOB_FLAGS      27 /**< Total number of Mob Flags */
 
 /* Preference flags: used by char_data.player_specials.pref */
 #define PRF_BRIEF         0   /**< Room descs won't normally be shown */
@@ -264,6 +309,7 @@
 #define PRF_AUTODOOR     33   /**< Use the next available door */
 #define PRF_ZONERESETS   34
 #define PRF_SHOW_DAMAGE_NUMBERS 35 /**< Show damage numbers in combat */
+
 /** Total number of available PRF flags */
 #define NUM_PRF_FLAGS    36
 
@@ -292,8 +338,11 @@
 #define AFF_HIDE           20   /**< Char is hidden */
 #define AFF_FREE           21   /**< Room for future expansion */
 #define AFF_CHARM          22   /**< Char is charmed */
+#define AFF_HEALTH_REGEN   23   /**< Char regenerates health */
+#define AFF_MANA_REGEN     24   /**< Char regenerates mana */
+#define AFF_STAMINA_REGEN  25   /**< Char regenerates stamina */
 /** Total number of affect flags */
-#define NUM_AFF_FLAGS   23
+#define NUM_AFF_FLAGS      26
 
 /* Modes of connectedness: used by descriptor_data.state 		*/
 #define CON_PLAYING       0 /**< Playing - Nominal state 		*/
@@ -370,8 +419,9 @@
 #define WEAR_WRIST_L   15  /**< Equipment Location Left Wrist */
 #define WEAR_WIELD     16  /**< Equipment Location Weapon */
 #define WEAR_HOLD      17  /**< Equipment Location held in offhand */
+#define WEAR_BACK      18  /**< Equipment Location Back */
 /** Total number of available equipment lcoations */
-#define NUM_WEARS      18
+#define NUM_WEARS      19
 
 /* object-related defines */
 /* Item types: used by obj_data.obj_flags.type_flag */
@@ -417,8 +467,9 @@
 #define ITEM_WEAR_WRIST	   12   /**< Item can be worn on wrist */
 #define ITEM_WEAR_WIELD	   13   /**< Item can be wielded */
 #define ITEM_WEAR_HOLD     14   /**< Item can be held */
+#define ITEM_WEAR_BACK     15   /**< Item can be worn as a back */
 /** Total number of item wears */
-#define NUM_ITEM_WEARS    15
+#define NUM_ITEM_WEARS     16
 
 /* Extra object flags: used by obj_data.obj_flags.extra_flags */
 #define ITEM_GLOW              0   /**< Item is glowing */
@@ -440,7 +491,7 @@
 #define ITEM_NOSELL           16   /**< Shopkeepers won't touch it */
 #define ITEM_QUEST            17   /**< Item is a quest item         */
 #define ITEM_UNIQUE_SAVE      18   /**< Item is a unique save item */
-#define ITEM_NOMAIL          19   /**< Item cannot be mailed */
+#define ITEM_NOMAIL           19   /**< Item cannot be mailed */
 /** Total number of item flags */
 #define NUM_ITEM_FLAGS    20
 
@@ -467,8 +518,12 @@
 #define APPLY_DAMROLL          19	/**< Apply to damage roll		*/
 #define APPLY_MAGIC_RESISTANCE  20	/**< Apply to save throw: paralysis	*/
 #define APPLY_ELEMENTAL_RESISTANCE       21	/**< Apply to save throw: rods	*/
+#define APPLY_CRITICAL_CHANCE      22	/**< Apply to critical hit chance	*/
+#define APPLY_CRITICAL_DAMAGE      23	/**< Apply to critical hit damage	*/
+#define APPLY_EXP_PERCENTAGE       24	/**< Apply to exp percentage gain	*/
+#define APPLY_LUCK                 25	/**< Apply to luck			*/
 /** Total number of applies */
-#define NUM_APPLIES   22
+#define NUM_APPLIES   26
 
 #define LEVEL_EXP_MULTIPLIER 0.2 /**< Multiplier for exp per level */
 
@@ -497,6 +552,32 @@
 #define LIQ_CLEARWATER 15  /**< Liquid type clearwater */
 /** Total number of liquid types */
 #define NUM_LIQ_TYPES     16
+
+#define POTION_MINOR_HEALING       0  /**< Potion type Minor Healing */
+#define POTION_GREATER_HEALING     1  /**< Potion type Greater Healing */
+#define POTION_SUPERIOR_HEALING    2  /**< Potion type Superior Healing */
+#define POTION_MINOR_MANA          3  /**< Potion type Minor Mana */
+#define POTION_GREATER_MANA        4  /**< Potion type Greater Mana */
+#define POTION_SUPERIOR_MANA       5  /**< Potion type Superior Mana */
+#define POTION_MINOR_STAMINA       6  /**< Potion type Minor Stamina */
+#define POTION_GREATER_STAMINA     7  /**< Potion type Greater Stamina */
+#define POTION_SUPERIOR_STAMINA    8  /**< Potion type Superior Stamina */
+#define POTION_CURE_POISON         9  /** Potion type Cure Poison */
+#define POTION_CURE_DISEASE       10  /**< Potion type Cure Disease */
+#define POTION_CRITICAL_CHANCE    11  /**< Potion type Critical Chance */
+#define POTION_CRITICAL_DAMAGE    12  /**< Potion type Critical Damage */
+#define POTION_EXP_PERCENTAGE     13  /**< Potion type Exp Percentage */
+#define POTION_LUCK               14  /**< Potion type Luck */
+#define POTION_ELEMENTAL_RESISTANCE 15 /**< Potion type Elemental Resistance */
+#define POTION_MAGIC_RESISTANCE   16 /**< Potion type Magic Resistance */
+#define POTION_REGENERATION       17 /**< Potion type Regeneration */
+#define POTION_STAMINA_REGENERATION 18 /**< Potion type Stamina Regeneration */
+#define POTION_MANA_REGENERATION  19 /**< Potion type Mana Regeneration */
+#define POTION_HEALTH_REGENERATION 20 /**< Potion type Health Regeneration */
+#define POTION_AC                21 /**< Potion type Armor Class */
+
+#define NUM_POTION_TYPES 22 /**< Total number of potion types */
+
 
 /* other miscellaneous defines */
 /* Player conditions */

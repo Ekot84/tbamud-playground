@@ -83,6 +83,10 @@ const char *room_bits[] = {
   "OLC",
   "*",				/* The BFS Mark. */
   "WORLDMAP",
+  "REGEN",          /* Room regenerates health/mana/stamina */
+  "POISON",         /* Room is poisonous, causes damage over time */
+  "MOVE_DRAIN",    /* Room drains movement points */
+  "NO_RECALL",      /* Room does not allow recall spells */
   "\n"
 };
 
@@ -97,6 +101,40 @@ const char *zone_bits[] = {
   "NOBUILD",
   "!ASTRAL",
   "WORLDMAP",
+  "MIDGAARD",   /* Midgaard zone, used for special handling in the game */
+  "TIER1_TOWN",   /* Tier 1 Town, used for special handling in the game */
+  "TIER2_TOWN",   /* Tier 2 Town, used for special handling in the game */
+  "TIER3_TOWN",   /* Tier 3 Town, used for special handling in the game */
+  "TIER4_TOWN",   /* Tier 4 Town, used for special handling in the game */
+  "TIER5_TOWN",   /* Tier 5 Town, used for special handling in the game */
+  "TIER1_AREA_1",
+  "TIER1_AREA_2",
+  "TIER1_AREA_3",
+  "TIER1_AREA_4",
+  "TIER1_AREA_5",
+  "TIER2_AREA_1",
+  "TIER2_AREA_2",
+  "TIER2_AREA_3",
+  "TIER2_AREA_4",
+  "TIER2_AREA_5",
+  "TIER3_AREA_1",
+  "TIER3_AREA_2",
+  "TIER3_AREA_3",
+  "TIER3_AREA_4",
+  "TIER3_AREA_5",
+  "TIER4_AREA_1",
+  "TIER4_AREA_2",
+  "TIER4_AREA_3",
+  "TIER4_AREA_4",
+  "TIER4_AREA_5",
+  "TIER5_AREA_1",
+  "TIER5_AREA_2",
+  "TIER5_AREA_3",
+  "TIER5_AREA_4",
+  "TIER5_AREA_5",
+  "INSTANCE", /* Instance zone */
+  "INSTANCE_PRIVATE", /* Instance zone, private */
+  "INSTANCE_TEMP", /* Instance zone, temporary */
   "\n"
 };
 
@@ -284,6 +322,9 @@ const char *affected_bits[] =
   "HIDE",
   "UNUSED",
   "CHARM",
+  "HEALTH_REGEN",     /* Char regenerates health */
+  "MANA_REGEN",       /* Char regenerates mana */
+  "STAMINA_REGEN",    /* Char regenerates stamina */
   "\n"
 };
 
@@ -348,7 +389,8 @@ const char *wear_where[] = {
   "<worn around wrist>  ",
   "<worn around wrist>  ",
   "<wielded>            ",
-  "<held>               "
+  "<held>               ",
+  "<worn on back>       "
 };
 
 /* Describes where an item can be worn.
@@ -373,6 +415,7 @@ const char *equipment_types[] = {
   "Worn around left wrist",
   "Wielded",
   "Held",
+  "Worn on back",
   "\n"
 };
 
@@ -426,6 +469,7 @@ const char *wear_bits[] = {
   "WRIST",
   "WIELD",
   "HOLD",
+  "BACK",
   "\n"
 };
 
@@ -482,6 +526,10 @@ const char *apply_types[] = {
   "DAMROLL",
   "MAGIC_RESISTANCE",
   "ELEMENTAL_RESISTANCE",
+  "CRITICAL_CHANCE",
+  "CRITICAL_DAMAGE",
+  "EXP_PERCENTAGE",
+  "LUCK",
   "\n"
 };
 
