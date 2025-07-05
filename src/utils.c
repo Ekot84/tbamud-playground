@@ -1572,3 +1572,30 @@ void broadcast_game_message(const char *fmt, ...)
     send_to_char(d->character, "%s\r\n", buf);
   }
 }
+
+int get_exp_percentage_bonus(struct char_data *ch) {
+  int mod = 0;
+  struct obj_data *obj;
+  int i, j;
+
+  /* Gear */
+  for (i = 0; i < NUM_WEARS; i++) {
+    if ((obj = GET_EQ(ch, i))) {
+      for (j = 0; j < MAX_OBJ_AFFECT; j++) {
+        if (obj->affected[j].location == APPLY_EXP_PERCENTAGE) {
+          mod += obj->affected[j].modifier;
+        }
+      }
+    }
+  }
+
+  /* Buffs - redo för framtiden */
+  struct affected_type *af;
+  for (af = ch->affected; af; af = af->next) {
+    if (af->location == APPLY_EXP_PERCENTAGE) {
+      mod += af->modifier;
+    }
+  }
+
+  return mod;
+}

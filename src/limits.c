@@ -234,20 +234,49 @@ void gain_exp(struct char_data *ch, int gain)
   }
 
   if (gain > 0) {
+    /* Save original gain for debugging */
+    int base_gain = gain;
+
+    /* Apply Happy Hour bonus if active */
     if ((IS_HAPPYHOUR) && (IS_HAPPYEXP))
-      gain += (int)((float)gain * ((float)HAPPY_EXP / (float)(100)));
+      gain += (int)((float)base_gain * ((float)HAPPY_EXP / (float)(100)));
+
+    /* Save gain after Happy Hour for debugging */
+    int gain_after_happy = gain;
+
+    /* Apply EXP % bonus from equipped items */
+    int mod = get_exp_percentage_bonus(ch);
+    double factor = (double)mod / 1000.0;
+    gain += (int)((double)gain * factor);
+
+    /* Save gain after Item bonus for debugging */
+    int gain_after_item = gain;
 
     /* Calculate level cap for this character */
     long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
     long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
-
-    /* Determine final cap as the smallest of TNL cap and config cap */
     long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
 
     /* Debug output */
     send_to_char(ch,
-      "\r\n[DEBUG] TNL=%ld  TNL Cap=%ld  Config Cap=%d  Final Cap=%ld  XP Gain(before cap)=%d\r\n",
-      tnl, tnl_cap, CONFIG_MAX_EXP_GAIN, final_cap, gain
+      "\r\n[DEBUG]\r\n"
+      "  Base Gain:            %d\r\n"
+      "  After Happy Hour:     %d\r\n"
+      "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
+      "  After Item Bonus:     %d\r\n"
+      "  TNL:                  %ld\r\n"
+      "  TNL Cap:              %ld\r\n"
+      "  Config Max Cap:       %d\r\n"
+      "  Final Cap:            %ld\r\n",
+      base_gain,
+      gain_after_happy,
+      mod,
+      factor * 100,
+      gain_after_item,
+      tnl,
+      tnl_cap,
+      CONFIG_MAX_EXP_GAIN,
+      final_cap
     );
 
     /* Apply final cap */
@@ -312,32 +341,64 @@ void gain_exp(struct char_data *ch, int gain)
 
 
 
+
 void gain_exp_regardless(struct char_data *ch, int gain)
 {
   int is_altered = FALSE;
   int num_levels = 0;
 
+  /* Save original gain for debugging */
+  int base_gain = gain;
+
   /* Apply Happy Hour bonus if active */
   if ((IS_HAPPYHOUR) && (IS_HAPPYEXP))
-    gain += (int)((float)gain * ((float)HAPPY_EXP / (float)(100)));
+    gain += (int)((float)base_gain * ((float)HAPPY_EXP / (float)(100)));
+
+  /* Save gain after Happy Hour for debugging */
+  int gain_after_happy = gain;
+
+  /* Item Experience bonuses */
+  int mod = get_exp_percentage_bonus(ch);
+  double factor = (double)mod / 1000.0;
+  gain += (int)((double)gain * factor);
+
+  int gain_after_item = gain;
 
   /* Calculate level cap for this character */
   if (!IS_NPC(ch)) {
     long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
     long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
-
-    /* Determine final cap as the smallest of TNL cap and config cap */
     long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
 
     /* Debug output */
     send_to_char(ch,
-      "\r\n[DEBUG] TNL=%ld  TNL Cap=%ld  Config Cap=%d  Final Cap=%ld  XP Gain(before cap)=%d\r\n",
-      tnl, tnl_cap, CONFIG_MAX_EXP_GAIN, final_cap, gain
+      "\r\n[DEBUG]\r\n"
+      "  Base Gain:            %d\r\n"
+      "  After Happy Hour:     %d\r\n"
+      "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
+      "  After Item Bonus:     %d\r\n"
+      "  TNL:                  %ld\r\n"
+      "  TNL Cap:              %ld\r\n"
+      "  Config Max Cap:       %d\r\n"
+      "  Final Cap:            %ld\r\n",
+      base_gain,
+      gain_after_happy,
+      mod,
+      factor * 100,
+      gain_after_item,
+      tnl,
+      tnl_cap,
+      CONFIG_MAX_EXP_GAIN,
+      final_cap
     );
 
     /* Apply cap */
     gain = MIN(gain, final_cap);
   }
+
+  /* Ensure non-negative XP gain */
+  if (gain < 0)
+    gain = 0;
 
   GET_EXP(ch) += gain;
 
@@ -392,11 +453,6 @@ void gain_exp_regardless(struct char_data *ch, int gain)
     }
   }
 }
-
-
-
-
-
 
 void gain_condition(struct char_data *ch, int condition, int value)
 {

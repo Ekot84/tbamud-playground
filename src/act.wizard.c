@@ -3525,17 +3525,17 @@ ACMD(do_links)
 #define MAX_DAMROLL_ALLOWED      MAX(GET_LEVEL(mob)/5, 1)
 #define MAX_HITROLL_ALLOWED      MAX(GET_LEVEL(mob)/3, 1)
 #define MAX_MOB_GOLD_ALLOWED     GET_LEVEL(mob)*3000
-#define MAX_EXP_ALLOWED          GET_LEVEL(mob)*GET_LEVEL(mob) * 120
+#define MAX_EXP_ALLOWED          GET_LEVEL(mob)*GET_LEVEL(mob) * 500
 #define MAX_LEVEL_ALLOWED        LVL_IMPL
 #define GET_OBJ_AVG_DAM(obj)     (((GET_OBJ_VAL(obj, 2) + 1) / 2.0) * GET_OBJ_VAL(obj, 1))
 /* arbitrary limit for per round dam */
-#define MAX_MOB_DAM_ALLOWED      500
+#define MAX_MOB_DAM_ALLOWED      750
 
 #define ZCMD2 zone_table[zone].cmd[cmd_no]  /*fom DB.C*/
 
 /*item limits*/
-#define MAX_DAM_ALLOWED            50    /* for weapons  - avg. dam*/
-#define MAX_AFFECTS_ALLOWED        3
+#define MAX_DAM_ALLOWED            100    /* for weapons  - avg. dam*/
+#define MAX_AFFECTS_ALLOWED        5
 #define MAX_OBJ_GOLD_ALLOWED       1000000
 
 /* Armor class limits*/
@@ -3569,15 +3569,15 @@ static struct zcheck_affs {
   char *message;   /*phrase for error message*/
 } zaffs[] = {
   {APPLY_NONE,         0, -99, "unused0"},
-  {APPLY_STR,         -5,   3, "strength"},
-  {APPLY_DEX,         -5,   3, "dexterity"},
-  {APPLY_INT,         -5,   3, "intelligence"},
-  {APPLY_WIS,         -5,   3, "wisdom"},
-  {APPLY_CON,         -5,   3, "constitution"},
-  {APPLY_CHA,         -5,   3, "charisma"},
+  {APPLY_STR,         -999,   999, "strength"},
+  {APPLY_DEX,         -999,   999, "dexterity"},
+  {APPLY_INT,         -999,   999, "intelligence"},
+  {APPLY_WIS,         -999,   999, "wisdom"},
+  {APPLY_CON,         -999,   999, "constitution"},
+  {APPLY_CHA,         -999,   999, "charisma"},
   {APPLY_CLASS,        0,   0, "class"},
   {APPLY_LEVEL,        0,   0, "level"},
-  {APPLY_AGE,        -10,  10, "age"},
+  {APPLY_AGE,        -50,  50, "age"},
   {APPLY_CHAR_WEIGHT,-50,  50, "character weight"},
   {APPLY_CHAR_HEIGHT,-50,  50, "character height"},
   {APPLY_MANA,       -50,  50, "mana"},
@@ -3589,7 +3589,11 @@ static struct zcheck_affs {
   {APPLY_HITROLL,      0, -99, "hitroll"},       /* Handled seperately below */
   {APPLY_DAMROLL,      0, -99, "damroll"},       /* Handled seperately below */
   {APPLY_MAGIC_RESISTANCE, -999,   999, "Magic Resistance"},
-  {APPLY_ELEMENTAL_RESISTANCE,  -999,   999, "Elemental Resistance"}
+  {APPLY_ELEMENTAL_RESISTANCE,  -999,   999, "Elemental Resistance"},
+  {APPLY_CRITICAL_CHANCE, -999, 999, "Critical Hit Chance"},
+  {APPLY_CRITICAL_DAMAGE, -999, 999, "Critical Hit Damage"},
+  {APPLY_EXP_PERCENTAGE, -999, 999, "Experience Percentage"},
+  {APPLY_LUCK, -999, 999, "Luck"}
 };
 
 /* These are ABS() values. */

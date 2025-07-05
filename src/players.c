@@ -227,7 +227,7 @@ char *get_name_by_id(long id)
  * if not. */
 int load_char(const char *name, struct char_data *ch)
 {
-  int id, i, num = 0, num2 = 0, num3 = 0, num4 = 0, num5 = 0, num6 = 0;
+  int id, i, num = 0, num2 = 0, num3 = 0;
   FILE *fl;
   char filename[40];
   char buf[128], buf2[128], line[MAX_INPUT_LENGTH + 1], tag[6];

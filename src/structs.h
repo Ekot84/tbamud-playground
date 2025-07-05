@@ -1015,8 +1015,8 @@ struct char_special_data_saved
   long idnum;            /**< PC's idnum; -1 for mobiles. */
   int act[PM_ARRAY_MAX]; /**< act flags for NPC's; player flag for PC's */
   int affected_by[AF_ARRAY_MAX]; /**< Bitvector for spells/skills affected by */
-  int magic_resistance;
-  int elemental_resistance;
+  int magic_resistance; /**< Magic resistance, used for saves */
+  int elemental_resistance; /**< Elemental resistance, used for saves */
 };
 
 /** Special playing constants shared by PCs and NPCs which aren't in pfile */
@@ -1096,6 +1096,12 @@ struct player_special_data_saved
   #define MAX_DISCOVERED_ZONES 512
   #define ZONE_FLAG_BYTES ((MAX_DISCOVERED_ZONES + 7) / 8)
   uint8_t discovered_zones[ZONE_FLAG_BYTES];
+  sh_int apply_elemental_resistance; /**< Elemental resistance bonus */
+  sh_int apply_magic_resistance; /**< Magic resistance bonus */
+  sh_int apply_regeneration; /**< Regeneration bonus */
+  sh_int apply_stamina_regeneration; /**< Stamina regeneration bonus */
+  sh_int apply_mana_regeneration; /**< Mana regeneration bonus */
+  sh_int apply_health_regeneration; /**< Health regeneration bonus */
   int wimp_level;         /**< Below this # of hit points, flee! */
   byte freeze_level;      /**< Level of god who froze char, if any */
   sh_int invis_level;     /**< level of invisibility */

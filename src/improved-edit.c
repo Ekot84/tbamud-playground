@@ -103,6 +103,7 @@ void parse_edit_action(int command, char *string, struct descriptor_data *d)
   char *s, *t, temp, *c;
   char buf[MAX_STRING_LENGTH];
   char buf2[MAX_STRING_LENGTH - 1];
+  char buf3[16];
 
   switch (command) {
   case PARSE_HELP:

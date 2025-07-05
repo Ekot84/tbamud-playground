@@ -1235,7 +1235,7 @@ static int perform_dupe_check(struct descriptor_data *d)
     write_to_output(d, "You have mail and a parcel waiting at the post office.\r\n");
   else if (has_letters)
     write_to_output(d, "You have mail waiting at the post office.\r\n");
-  else if (has_parcels)
+  else if (has_parcels) 
     write_to_output(d, "You have a parcel waiting at the post office.\r\n");
     break;
   case USURP:

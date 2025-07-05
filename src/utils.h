@@ -73,6 +73,9 @@ int count_non_protocol_chars(char * str);
 char *right_trim_whitespace(const char *string);
 void remove_from_string(char *string, const char *to_remove);
 void broadcast_game_message(const char *fmt, ...);
+int get_exp_percentage_bonus(struct char_data *ch);
+void kill_add(struct char_data *ch, int vnum, int count, int end);
+
 
 /* Public functions made available form weather.c */
 void weather_and_time(int mode);
@@ -554,6 +557,7 @@ do                                                              \
 #define GET_MAGIC_RESISTANCE(ch) ((ch)->char_specials.saved.magic_resistance)
 /** Elemental Resistance */
 #define GET_ELEMENTAL_RESISTANCE(ch) ((ch)->char_specials.saved.elemental_resistance)
+
 /** Alignment value for ch. */
 #define GET_ALIGNMENT(ch) ((ch)->char_specials.saved.alignment)
 
