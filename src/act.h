@@ -104,6 +104,7 @@ ACMD(do_where);
 ACMD(do_who);
 ACMD(do_whois);
 ACMD(do_killlist);
+ACMD(do_damagenumbers); /**< Toggle showing damage numbers in combat */
 
 /*****************************************************************************
  * Begin Functions and defines for act.item.c

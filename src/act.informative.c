@@ -2678,3 +2678,13 @@ ACMD(do_scan)
     send_to_char(ch, "You don't see anything nearby!\r\n");
   }
 } // end of do_scan
+
+ACMD(do_damagenumbers) {
+  if (PRF_FLAGGED(ch, PRF_SHOW_DAMAGE_NUMBERS)) {
+    REMOVE_BIT_AR(PRF_FLAGS(ch), PRF_SHOW_DAMAGE_NUMBERS);
+    send_to_char(ch, "Damage numbers disabled.\r\n");
+  } else {
+    SET_BIT_AR(PRF_FLAGS(ch), PRF_SHOW_DAMAGE_NUMBERS);
+    send_to_char(ch, "Damage numbers enabled.\r\n");
+  }
+}

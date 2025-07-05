@@ -200,6 +200,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "credits"  , "cred"    , POS_DEAD    , do_gen_ps   , 0, SCMD_CREDITS },
 
   { "date"     , "da"      , POS_DEAD    , do_date     , LVL_IMMORT, SCMD_DATE },
+  { "damagenumbers", "damnr", POS_DEAD, do_damagenumbers, 0, 0 },
   { "dc"       , "dc"      , POS_DEAD    , do_dc       , LVL_GOD, 0 },
   { "deposit"  , "depo"    , POS_STANDING, do_not_here , 1, 0 },
   { "detach"   , "detach"  , POS_DEAD    , do_detach   , LVL_BUILDER, 0 },

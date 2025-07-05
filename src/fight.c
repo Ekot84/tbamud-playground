@@ -434,7 +434,7 @@ void die(struct char_data * ch, struct char_data * killer)
 long find_exp(struct char_data * ch, struct char_data * victim)
 {
   long exp;
-  int ch_class = CLASS_WARRIOR, number_killed;
+  int number_killed;
   
   /* For Now BUT need to rewritten --Eko */
     exp = MIN(CONFIG_MAX_EXP_GAIN, GET_EXP(victim));
@@ -725,6 +725,17 @@ int skill_message(int dam, struct char_data *ch, struct char_data *vict,
           send_to_char(vict, CCNRM(vict, C_CMP));
 
           act(msg->die_msg.room_msg, FALSE, ch, weap, vict, TO_NOTVICT);
+
+          if (dam > 0) {
+            if (PRF_FLAGGED(ch, PRF_SHOW_DAMAGE_NUMBERS)) {
+              send_to_char(ch, "%s[You dealt %d damage.]%s\r\n",
+             CCGRN(ch, C_CMP), dam, CCNRM(ch, C_CMP));
+            }
+            if (PRF_FLAGGED(vict, PRF_SHOW_DAMAGE_NUMBERS)) {
+              send_to_char(vict, "%s[You took %d damage.]%s\r\n",
+             CCRED(vict, C_CMP), dam, CCNRM(vict, C_CMP));
+            }
+          }    
         } else {
           if (msg->hit_msg.attacker_msg) {
             send_to_char(ch, CCYEL(ch, C_CMP));
@@ -864,6 +875,17 @@ int damage(struct char_data *ch, struct char_data *victim, int dam, int attackty
 	dam_message(dam, ch, victim, attacktype);
     } else {
       dam_message(dam, ch, victim, attacktype);
+    }
+  }
+
+  if (dam > 0) {
+    if (PRF_FLAGGED(ch, PRF_SHOW_DAMAGE_NUMBERS)) {
+      send_to_char(ch, "%s[You dealt %d damage.]%s\r\n",
+             CCGRN(ch, C_CMP), dam, CCNRM(ch, C_CMP));
+    }
+    if (PRF_FLAGGED(victim, PRF_SHOW_DAMAGE_NUMBERS)) {
+      send_to_char(victim, "%s[You took %d damage.]%s\r\n",
+             CCRED(victim, C_CMP), dam, CCNRM(victim, C_CMP));
     }
   }
 
