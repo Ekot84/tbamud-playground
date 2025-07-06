@@ -38,21 +38,13 @@ _A modern, ongoing reimagination of TbaMUD – combining classic inspired featur
 
 ---
 
-### 📊 **Improved Score Display**
-- Completely redesigned `score` command:
-  - Color-coded output using `\t` codes (not legacy `@`).
-  - Percent-format for armor class and future resistances.
-  - Clear sections: Character Info, Combat, Resistances, Exploration, and Combat Record.
-  - Displays XP bonuses, critical stats, and playtime.
-- Special easter egg `score_bin` version displaying values in binary for fun.
-
----
-
 ### 🛠️ **Helpers & Utility**
 - New helper functions:
   - `get_crit_chance()` – Calculates total critical chance.
   - `get_crit_damage()` – Calculates total critical damage.
   - `get_exp_percentage_bonus()` – Calculates experience gain bonuses.
+  - AC is now max of 999 (99,9%) and is Physical Resistance.
+  - All atributes are now max of 999.
 - Prepared infrastructure for future systems:
   - Magical Resistance
   - Elemental Resistance
@@ -65,6 +57,7 @@ _A modern, ongoing reimagination of TbaMUD – combining classic inspired featur
 - Expand the account system (e.g., password recovery, email verification).
 - Add regeneration systems for HP/Mana/Move.
 - Extend quest and exploration tracking.
+- Achievements.
 - Random Items based on zone lvl.
 - Split up the gameplay in 5 parts based on level, 5 towns.
 - Instances.
