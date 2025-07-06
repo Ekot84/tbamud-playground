@@ -340,15 +340,31 @@ static void oedit_disp_prompt_apply_menu(struct descriptor_data *d)
   for (counter = 0; counter < MAX_OBJ_AFFECT; counter++) {
     if (OLC_OBJ(d)->affected[counter].modifier) {
       sprinttype(OLC_OBJ(d)->affected[counter].location, apply_types, apply_buf, sizeof(apply_buf));
-      write_to_output(d, " %s%d%s) %+d to %s\r\n", grn, counter + 1, nrm,
-	      OLC_OBJ(d)->affected[counter].modifier, apply_buf);
+
+      if (OLC_OBJ(d)->affected[counter].location == APPLY_EXP_PERCENTAGE ||
+          OLC_OBJ(d)->affected[counter].location == APPLY_CRITICAL_CHANCE ||
+          OLC_OBJ(d)->affected[counter].location == APPLY_CRITICAL_DAMAGE ||
+          OLC_OBJ(d)->affected[counter].location == APPLY_LUCK) {
+        write_to_output(d, " %s%d%s) %+d (%.1f%%) to %s\r\n",
+          grn, counter + 1, nrm,
+          OLC_OBJ(d)->affected[counter].modifier,
+          (float)OLC_OBJ(d)->affected[counter].modifier / 10.0,
+          apply_buf);
+      } else {
+        write_to_output(d, " %s%d%s) %+d to %s\r\n",
+          grn, counter + 1, nrm,
+          OLC_OBJ(d)->affected[counter].modifier,
+          apply_buf);
+      }
     } else {
       write_to_output(d, " %s%d%s) None.\r\n", grn, counter + 1, nrm);
     }
   }
+
   write_to_output(d, "\r\nEnter affection to modify (0 to quit) : ");
   OLC_MODE(d) = OEDIT_PROMPT_APPLY;
 }
+
 
 /* Ask for liquid type. */
 static void oedit_liquid_type(struct descriptor_data *d)

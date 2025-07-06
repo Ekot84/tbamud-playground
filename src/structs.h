@@ -525,7 +525,8 @@
 /** Total number of applies */
 #define NUM_APPLIES   26
 
-#define LEVEL_EXP_MULTIPLIER 0.2 /**< Multiplier for exp per level */
+#define LEVEL_EXP_MULTIPLIER 0.09 /**< Multiplier for exp per level */
+#define LEVEL_EXP_MULTIPLIER_SQR 12 /**< Square of the multiplier for exp per level */
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/
@@ -788,7 +789,7 @@ struct obj_flag_data
 struct obj_affected_type
 {
   byte location;  /**< Which ability to change (APPLY_XXX) */
-  sbyte modifier; /**< How much it changes by              */
+  sh_int modifier; /**< How much it changes by              */
 };
 
 /** The Object structure. */

@@ -8,6 +8,7 @@
 *  CircleMUD is based on DikuMUD, Copyright (C) 1990, 1991.               *
 **************************************************************************/
 
+#include <math.h>
 #include "conf.h"
 #include "sysdep.h"
 #include "structs.h"
@@ -252,32 +253,48 @@ void gain_exp(struct char_data *ch, int gain)
     /* Save gain after Item bonus for debugging */
     int gain_after_item = gain;
 
-    /* Calculate level cap for this character */
-    long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
-    long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
-    long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
+    /* Calculate static cap for this character based on full level span */
+    long level_span = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) -
+                  level_exp(GET_CLASS(ch), GET_LEVEL(ch));
 
-    /* Debug output */
-    send_to_char(ch,
-      "\r\n[DEBUG]\r\n"
-      "  Base Gain:            %d\r\n"
-      "  After Happy Hour:     %d\r\n"
-      "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
-      "  After Item Bonus:     %d\r\n"
-      "  TNL:                  %ld\r\n"
-      "  TNL Cap:              %ld\r\n"
-      "  Config Max Cap:       %d\r\n"
-      "  Final Cap:            %ld\r\n",
-      base_gain,
-      gain_after_happy,
-      mod,
-      factor * 100,
-      gain_after_item,
-      tnl,
-      tnl_cap,
-      CONFIG_MAX_EXP_GAIN,
-      final_cap
-    );
+    long level_cap;
+    const char *cap_type;  // För debug
+
+    if (GET_LEVEL(ch) <= 50) {
+      /* Linear scaling */
+      level_cap = (long)(level_span * LEVEL_EXP_MULTIPLIER);
+      cap_type = "Linear";
+    } else {
+      /* Square root scaling */
+      double sqrt_span = sqrt((double)level_span);
+      level_cap = (long)(sqrt_span * LEVEL_EXP_MULTIPLIER_SQR);
+      cap_type = "Sqrt";
+    }
+
+    int final_cap = MIN(CONFIG_MAX_EXP_GAIN, level_cap);
+  /* Debug output */
+  send_to_char(ch,
+    "\r\n[DEBUG]\r\n"
+    "  Base Gain:            %d\r\n"
+    "  After Happy Hour:     %d\r\n"
+    "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
+    "  After Item Bonus:     %d\r\n"
+    "  LVL Span:             %ld\r\n"
+    "  Cap Type:             %s\r\n"
+    "  LVL Cap:              %ld\r\n"
+    "  Config Max Cap:       %d\r\n"
+    "  Final Cap:            %d\r\n",
+    base_gain,
+    gain_after_happy,
+    mod,
+    factor * 100,
+    gain_after_item,
+    level_span,
+    cap_type,
+    level_cap,
+    CONFIG_MAX_EXP_GAIN,
+    final_cap
+  );
 
     /* Apply final cap */
     gain = MIN(gain, final_cap);
@@ -366,31 +383,48 @@ void gain_exp_regardless(struct char_data *ch, int gain)
 
   /* Calculate level cap for this character */
   if (!IS_NPC(ch)) {
-    long tnl = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch);
-    long tnl_cap = (long)(tnl * LEVEL_EXP_MULTIPLIER);
-    long final_cap = MIN(CONFIG_MAX_EXP_GAIN, tnl_cap);
+    /* Calculate static cap for this character based on full level span */
+    long level_span = level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) -
+                  level_exp(GET_CLASS(ch), GET_LEVEL(ch));
 
-    /* Debug output */
-    send_to_char(ch,
-      "\r\n[DEBUG]\r\n"
-      "  Base Gain:            %d\r\n"
-      "  After Happy Hour:     %d\r\n"
-      "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
-      "  After Item Bonus:     %d\r\n"
-      "  TNL:                  %ld\r\n"
-      "  TNL Cap:              %ld\r\n"
-      "  Config Max Cap:       %d\r\n"
-      "  Final Cap:            %ld\r\n",
-      base_gain,
-      gain_after_happy,
-      mod,
-      factor * 100,
-      gain_after_item,
-      tnl,
-      tnl_cap,
-      CONFIG_MAX_EXP_GAIN,
-      final_cap
-    );
+    long level_cap;
+    const char *cap_type;  // För debug
+
+    if (GET_LEVEL(ch) <= 50) {
+      /* Linear scaling */
+      level_cap = (long)(level_span * LEVEL_EXP_MULTIPLIER);
+      cap_type = "Linear";
+    } else {
+      /* Square root scaling */
+      double sqrt_span = sqrt((double)level_span);
+      level_cap = (long)(sqrt_span * LEVEL_EXP_MULTIPLIER_SQR);
+      cap_type = "Sqrt";
+    }
+
+    int final_cap = MIN(CONFIG_MAX_EXP_GAIN, level_cap);
+  /* Debug output */
+  send_to_char(ch,
+    "\r\n[DEBUG]\r\n"
+    "  Base Gain:            %d\r\n"
+    "  After Happy Hour:     %d\r\n"
+    "  Item Bonus Modifier:  %+d (%.1f%%)\r\n"
+    "  After Item Bonus:     %d\r\n"
+    "  LVL Span:             %ld\r\n"
+    "  Cap Type:             %s\r\n"
+    "  LVL Cap:              %ld\r\n"
+    "  Config Max Cap:       %d\r\n"
+    "  Final Cap:            %d\r\n",
+    base_gain,
+    gain_after_happy,
+    mod,
+    factor * 100,
+    gain_after_item,
+    level_span,
+    cap_type,
+    level_cap,
+    CONFIG_MAX_EXP_GAIN,
+    final_cap
+  );
 
     /* Apply cap */
     gain = MIN(gain, final_cap);
