@@ -96,6 +96,8 @@ ACMD(do_inventory);
 ACMD(do_levels);
 ACMD(do_scan);
 ACMD(do_score);
+ACMD(do_score1); /** Old stock score */
+ACMD(do_score_bin); /** EasterEgg Score in binary */
 ACMD(do_time);
 ACMD(do_toggle);
 ACMD(do_users);
@@ -105,6 +107,7 @@ ACMD(do_who);
 ACMD(do_whois);
 ACMD(do_killlist);
 ACMD(do_damagenumbers); /**< Toggle showing damage numbers in combat */
+ACMD(do_affects); /**< Show active affects on the character */
 
 /*****************************************************************************
  * Begin Functions and defines for act.item.c
@@ -352,5 +355,6 @@ ACMD(do_zlock);
 ACMD(do_zpurge);
 ACMD(do_zreset);
 ACMD(do_zunlock);
+
 
 #endif /* _ACT_H_ */

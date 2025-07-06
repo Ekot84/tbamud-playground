@@ -62,7 +62,8 @@ static void group_gain(struct char_data *ch, struct char_data *victim);
 static void solo_gain(struct char_data *ch, struct char_data *victim);
 /** @todo refactor this function name */
 static char *replace_string(const char *str, const char *weapon_singular, const char *weapon_plural);
-
+int get_crit_chance(struct char_data *ch);
+int get_crit_damage(struct char_data *ch);
 
 #define IS_WEAPON(type) (((type) >= TYPE_HIT) && ((type) < TYPE_SUFFERING))
 /* The Fight related routines */
@@ -1074,9 +1075,19 @@ void hit(struct char_data *ch, struct char_data *victim, int type)
     if (GET_POS(victim) < POS_FIGHTING)
       dam *= 1 + (POS_FIGHTING - GET_POS(victim)) / 3;
 
+    /* Check critical hit */
+    int critChance = get_crit_chance(ch);
+    int critDamage = get_crit_damage(ch);
+
+    if (rand_number(1, 1000) <= critChance) {
+      dam = dam * (100 + critDamage) / 100;
+      send_to_char(ch, "@RYou land a CRITICAL HIT!@n\r\n");
+      send_to_char(victim, "@R%s lands a CRITICAL HIT on you!@n\r\n", GET_NAME(ch));
+    }
+
     /* at least 1 hp damage min per hit */
     dam = MAX(1, dam);
-
+    
     if (type == SKILL_BACKSTAB)
       damage(ch, victim, dam * backstab_mult(GET_LEVEL(ch)), SKILL_BACKSTAB);
     else

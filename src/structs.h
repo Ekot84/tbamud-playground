@@ -1103,6 +1103,8 @@ struct player_special_data_saved
   sh_int apply_stamina_regeneration; /**< Stamina regeneration bonus */
   sh_int apply_mana_regeneration; /**< Mana regeneration bonus */
   sh_int apply_health_regeneration; /**< Health regeneration bonus */
+  int crit_chance; /**< Critical hit chance bonus */
+  int crit_damage; /**< Critical hit damage bonus */
   int wimp_level;         /**< Below this # of hit points, flee! */
   byte freeze_level;      /**< Level of god who froze char, if any */
   sh_int invis_level;     /**< level of invisibility */

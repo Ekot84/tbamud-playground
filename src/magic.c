@@ -27,6 +27,8 @@
 /* local file scope function prototypes */
 static int mag_materials(struct char_data *ch, IDXTYPE item0, IDXTYPE item1, IDXTYPE item2, int extract, int verbose);
 static void perform_mag_groups(int level, struct char_data *ch, struct char_data *tch, int spellnum, int savetype);
+int get_crit_chance(struct char_data *ch);
+int get_crit_damage(struct char_data *ch);
 
 
 // Changed for new magic resistance and elemental resistance
@@ -268,6 +270,15 @@ int mag_damage(int level, struct char_data *ch, struct char_data *victim,
 
   } /* switch(spellnum) */
 
+  /* Critical hit for spell damage */
+  int critChance = get_crit_chance(ch);
+  int critDamage = get_crit_damage(ch);
+
+  if (rand_number(1, 1000) <= critChance) {
+    dam = dam * (100 + critDamage) / 100;
+    send_to_char(ch, "@BYour spell critically hits!@n\r\n");
+    send_to_char(victim, "@B%s's spell critically hits you!@n\r\n", GET_NAME(ch));
+  }
 
   /* divide damage by two if victim makes his saving throw */
   if (mag_savingthrow(victim))
@@ -782,7 +793,7 @@ void mag_summons(int level, struct char_data *ch, struct obj_data *obj,
 
 
 void mag_points(int level, struct char_data *ch, struct char_data *victim,
-		     int spellnum, int savetype)
+                 int spellnum, int savetype)
 {
   int healing = 0, move = 0;
 
@@ -803,10 +814,22 @@ void mag_points(int level, struct char_data *ch, struct char_data *victim,
     send_to_char(victim, "A warm feeling floods your body.\r\n");
     break;
   }
+
+  /* Critical heal check */
+  int critChance = get_crit_chance(ch);
+  int critBonus = get_crit_damage(ch);
+
+  if (rand_number(1, 1000) <= critChance) {
+    healing = healing * (100 + critBonus) / 100;
+    send_to_char(ch, "@GYour healing critically restores more health!@n\r\n");
+    send_to_char(victim, "@G%s's healing critically restores you!@n\r\n", GET_NAME(ch));
+  }
+
   GET_HIT(victim) = MIN(GET_MAX_HIT(victim), GET_HIT(victim) + healing);
   GET_MOVE(victim) = MIN(GET_MAX_MOVE(victim), GET_MOVE(victim) + move);
   update_pos(victim);
 }
+
 
 void mag_unaffects(int level, struct char_data *ch, struct char_data *victim,
 		        int spellnum, int type)

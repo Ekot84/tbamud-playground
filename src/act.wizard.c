@@ -1589,36 +1589,49 @@ ACMD(do_restore)
   int i;
 
   one_argument(argument, buf);
-  if (!*buf)
-    send_to_char(ch, "Whom do you wish to restore?\r\n");
-   else if (is_abbrev(buf, "all"))
-   {
-    mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s restored all",GET_NAME(ch));
 
-     for (j = descriptor_list; j; j = j->next)
-    {
+  if (!*buf) {
+    send_to_char(ch, "Whom do you wish to restore?\r\n");
+  }
+  else if (is_abbrev(buf, "all")) {
+    mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s restored all", GET_NAME(ch));
+
+    for (j = descriptor_list; j; j = j->next) {
       if (!IS_PLAYING(j) || !(vict = j->character) || GET_LEVEL(vict) >= LVL_IMMORT)
-     continue;
+        continue;
 
       GET_HIT(vict)  = GET_MAX_HIT(vict);
       GET_MANA(vict) = GET_MAX_MANA(vict);
       GET_MOVE(vict) = GET_MAX_MOVE(vict);
 
+      /* Replenish hunger and thirst */
+      GET_COND(vict, HUNGER) = 24;
+      GET_COND(vict, THIRST) = 24;
+
       update_pos(vict);
-      send_to_char(ch, "%s has been fully healed.\r\n", GET_NAME(vict));
-      act("You have been fully healed by $N!", FALSE, vict, 0, ch, TO_CHAR);
+      affect_total(vict);
+
+      act("@Y$N engulfs you in a pillar of @RFI@YRE@W that restores you to perfect health!@n", 
+          FALSE, vict, 0, ch, TO_CHAR);
+      send_to_char(ch, "%s has been fully restored.\r\n", GET_NAME(vict));
     }
   }
-  else if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD)))
+  else if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_WORLD))) {
     send_to_char(ch, "%s", CONFIG_NOPERSON);
-  else if (!IS_NPC(vict) && ch != vict && GET_LEVEL(vict) >= GET_LEVEL(ch))
+  }
+  else if (!IS_NPC(vict) && ch != vict && GET_LEVEL(vict) >= GET_LEVEL(ch)) {
     act("$E doesn't need your help.", FALSE, ch, 0, vict, TO_CHAR);
+  }
   else {
-    mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s restored %s",GET_NAME(ch), GET_NAME(vict));
+    mudlog(NRM, MAX(LVL_GOD, GET_INVIS_LEV(ch)), TRUE, "(GC) %s restored %s", GET_NAME(ch), GET_NAME(vict));
 
-    GET_HIT(vict) = GET_MAX_HIT(vict);
+    GET_HIT(vict)  = GET_MAX_HIT(vict);
     GET_MANA(vict) = GET_MAX_MANA(vict);
     GET_MOVE(vict) = GET_MAX_MOVE(vict);
+
+    /* Replenish hunger and thirst */
+    GET_COND(vict, HUNGER) = 24;
+    GET_COND(vict, THIRST) = 24;
 
     if (!IS_NPC(vict) && GET_LEVEL(ch) >= LVL_GRGOD) {
       if (GET_LEVEL(vict) >= LVL_IMMORT)
@@ -1626,21 +1639,25 @@ ACMD(do_restore)
           SET_SKILL(vict, i, 100);
 
       if (GET_LEVEL(vict) >= LVL_GRGOD) {
-	vict->real_abils.str_add = 100;
-	vict->real_abils.intel = 25;
-	vict->real_abils.wis = 25;
-	vict->real_abils.dex = 25;
-	vict->real_abils.str = 25;
-	vict->real_abils.con = 25;
-	vict->real_abils.cha = 25;
+        vict->real_abils.str_add = 100;
+        vict->real_abils.intel = 25;
+        vict->real_abils.wis   = 25;
+        vict->real_abils.dex   = 25;
+        vict->real_abils.str   = 25;
+        vict->real_abils.con   = 25;
+        vict->real_abils.cha   = 25;
       }
     }
+
     update_pos(vict);
     affect_total(vict);
+
     send_to_char(ch, "%s", CONFIG_OK);
-    act("You have been fully healed by $N!", FALSE, vict, 0, ch, TO_CHAR);
+    act("@Y$N engulfs you in a pillar of @RFI@YRE@W that restores you to perfect health!@n",
+        FALSE, vict, 0, ch, TO_CHAR);
   }
 }
+
 
 void perform_immort_vis(struct char_data *ch)
 {

@@ -51,6 +51,8 @@ static void show_obj_modifiers(struct obj_data *obj, struct char_data *ch);
 static void perform_immort_where(struct char_data *ch, char *arg);
 static void perform_mortal_where(struct char_data *ch, char *arg);
 static void print_object_location(int num, struct obj_data *obj, struct char_data *ch, int recur);
+int get_crit_chance(struct char_data *ch);
+int get_crit_damage(struct char_data *ch);
 
 /* Subcommands */
 /* For show_obj_to_char 'mode'.    /-- arbitrary */
@@ -814,6 +816,153 @@ ACMD(do_gold)
 ACMD(do_score)
 {
   struct time_info_data playing_time;
+  playing_time = *real_time_passed(
+    (time(0) - ch->player.time.logon) + ch->player.time.played,
+    0);
+
+  if (IS_NPC(ch))
+    return;
+
+  send_to_char(ch, "\r\n");
+
+  /* Header */
+    send_to_char(ch,
+    "\tg+----------------------------[ Score ]--------------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcName\tn: \tw%-15s  \tcAge\tn: \tw%-3d  \tcLevel\tn: \tw%-3d  \tcClass\tn: \tw%-10s\r\n",
+    GET_NAME(ch), GET_AGE(ch), GET_LEVEL(ch),
+    pc_class_types[(int)GET_CLASS(ch)]);
+
+
+  /* Alignment text */
+  const char *align = "Unknown";
+  if (GET_ALIGNMENT(ch) >= 750)
+    align = "Saintly";
+  else if (GET_ALIGNMENT(ch) >= 500)
+    align = "Beatific";
+  else if (GET_ALIGNMENT(ch) >= 250)
+    align = "Good";
+  else if (GET_ALIGNMENT(ch) >= 100)
+    align = "Neutral+";
+  else if (GET_ALIGNMENT(ch) >= 0)
+    align = "Neutral";
+  else if (GET_ALIGNMENT(ch) >= -100)
+    align = "Neutral-";
+  else if (GET_ALIGNMENT(ch) >= -500)
+    align = "Evil";
+  else
+    align = "Demonic";
+
+  send_to_char(ch,
+    "  \tcAlignment\tn: \tw%-10s\r\n", align);
+
+  send_to_char(ch,
+    "\tg+---------------------------------------------------------------+\tn\r\n");
+
+  /* Basic stats */
+  send_to_char(ch,
+    "  \tcHP\tn: \tw%3d/%-3d  \tcMana\tn: \tw%3d/%-3d  \tcMove\tn: \tw%3d/%-3d  \tcAC\tn: \tw%4.1f%%\r\n",
+    GET_HIT(ch), GET_MAX_HIT(ch),
+    GET_MANA(ch), GET_MAX_MANA(ch),
+    GET_MOVE(ch), GET_MAX_MOVE(ch),
+    compute_armor_class(ch) / 10.0f);
+
+  send_to_char(ch,
+    "  \tcStr\tn: \tw%-2d  \tcDex\tn: \tw%-2d  \tcCon\tn: \tw%-2d  \tcInt\tn: \tw%-2d  \tcWis\tn: \tw%-2d  \tcCha\tn: \tw%-2d\r\n",
+    GET_STR(ch), GET_DEX(ch), GET_CON(ch),
+    GET_INT(ch), GET_WIS(ch), GET_CHA(ch));
+
+  /* Combat Bonuses */
+  send_to_char(ch,
+    "\tg+---------------------------[ Combat ]--------------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcCrit Chance\tn: \tw%-3d%%     \tcCrit Damage\tn: \tw+%d%%     \tcXP Bonus\tn: \tw+%d%%\r\n",
+    get_crit_chance(ch)/10, get_crit_damage(ch)/10,
+    get_exp_percentage_bonus(ch)/10);
+
+  /* Resistances */
+  send_to_char(ch,
+    "\tg+-------------------------[ Resistances ]-----------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcElemental\tn: \tw%-3d%%     \tcMagic\tn: \tw%-3d%%     \tcPhysical\tn: \tw%4.1f%%\r\n",
+    GET_ELEMENTAL_RESISTANCE(ch),
+    GET_MAGIC_RESISTANCE(ch),
+    compute_armor_class(ch) / 10.0f);
+
+  /* Exploration */
+  send_to_char(ch,
+    "\tg+-------------------------[ Exploration ]-----------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcZones Discovered\tn: \tw%-3d\r\n",
+    GET_ZONES_DISCOVERED(ch));
+  send_to_char(ch,
+    "  \tcPlayed\tn: \tw%d day(s), %d hour(s)\r\n",
+    playing_time.day, playing_time.hours);
+
+  /* Economy */
+  send_to_char(ch,
+  "\tg+--------------------------[ Economy ]--------------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcGold: \tw%ld   \tcBank: \tw%ld\tn\r\n",
+    GET_GOLD(ch), GET_BANK_GOLD(ch));
+
+  /* Combat Record */
+  send_to_char(ch,
+    "\tg+---------------------------[ Record ]--------------------------+\tn\r\n");
+  send_to_char(ch,
+    "  \tcKills\tn: \tw%-5d   \tcLegit Kills\tn: \tw%-5d   \tcDeaths\tn: \tw%-5d\r\n",
+    GET_KILLS_TOTAL(ch), GET_KILLS_LEGIT_TOTAL(ch), GET_DEATHS(ch));
+  send_to_char(ch,
+    "\tg+---------------------------------------------------------------+\tn\r\n");
+
+  /* Position */
+  switch (GET_POS(ch)) {
+  case POS_DEAD:
+    send_to_char(ch, "  \trYou are DEAD!\tn\r\n");
+    break;
+  case POS_MORTALLYW:
+    send_to_char(ch, "  \trYou are mortally wounded!\tn\r\n");
+    break;
+  case POS_INCAP:
+    send_to_char(ch, "  \trYou are incapacitated.\tn\r\n");
+    break;
+  case POS_STUNNED:
+    send_to_char(ch, "  \trYou are stunned!\tn\r\n");
+    break;
+  case POS_SLEEPING:
+    send_to_char(ch, "  You are sleeping.\r\n");
+    break;
+  case POS_RESTING:
+    send_to_char(ch, "  You are resting.\r\n");
+    break;
+  case POS_SITTING:
+    send_to_char(ch, "  You are sitting.\r\n");
+    break;
+  case POS_FIGHTING:
+    send_to_char(ch, "  You are fighting %s.\r\n",
+      FIGHTING(ch) ? PERS(FIGHTING(ch), ch) : "thin air");
+    break;
+  case POS_STANDING:
+    send_to_char(ch, "  You are standing.\r\n");
+    break;
+  default:
+    send_to_char(ch, "  You are floating.\r\n");
+    break;
+  }
+
+  /* Conditions */
+  if (GET_COND(ch, DRUNK) > 10)
+    send_to_char(ch, "  You are intoxicated.\r\n");
+  if (GET_COND(ch, HUNGER) == 0)
+    send_to_char(ch, "  You are hungry.\r\n");
+  if (GET_COND(ch, THIRST) == 0)
+    send_to_char(ch, "  You are thirsty.\r\n");
+}
+
+
+ACMD(do_score1)
+{
+  struct time_info_data playing_time;
 
   if (IS_NPC(ch))
     return;
@@ -951,6 +1100,143 @@ ACMD(do_score)
 
     send_to_char(ch, "Your current zone: %s%d%s\r\n", CCCYN(ch, C_NRM), GET_OLC_ZONE(ch),
  CCNRM(ch, C_NRM));
+  }
+}
+
+const char *to_binary(int num) {
+  static char binstr[40];
+  char tmp[33];
+  int i, started = 0, p = 0;
+
+  for (i = 31; i >= 0; i--) {
+    if (num & (1 << i)) started = 1;
+    if (started)
+      tmp[p++] = (num & (1 << i)) ? '1' : '0';
+  }
+
+  if (!started) {
+    strcpy(binstr, "0b0");
+  } else {
+    tmp[p] = '\0';
+    snprintf(binstr, sizeof(binstr), "0b%s", tmp);
+  }
+
+  return binstr;
+}
+
+ACMD(do_score_bin)
+{
+  struct time_info_data playing_time;
+
+  if (IS_NPC(ch))
+    return;
+
+  send_to_char(ch, "\r\n\ty+---------------------[ \tCBinary Diagnostics\ty ]---------------------+\tn\r\n");
+
+  send_to_char(ch, "\ty| \tCAge\tn: %s year(s)", to_binary(GET_AGE(ch)));
+
+  if (age(ch)->month == 0 && age(ch)->day == 0)
+    send_to_char(ch, " \tg(It’s your birthday!)");
+  send_to_char(ch, " \ty|\r\n");
+
+  send_to_char(ch,
+    "\ty| \tCHit\tn: %s/%s  \tCMana\tn: %s/%s  \tCMove\tn: %s/%s \ty|\r\n",
+    to_binary(GET_HIT(ch)), to_binary(GET_MAX_HIT(ch)),
+    to_binary(GET_MANA(ch)), to_binary(GET_MAX_MANA(ch)),
+    to_binary(GET_MOVE(ch)), to_binary(GET_MAX_MOVE(ch)));
+
+  send_to_char(ch,
+    "\ty| \tCArmor\tn: %s  \tCAlignment\tn: %s \ty|\r\n",
+    to_binary(compute_armor_class(ch)), to_binary(GET_ALIGNMENT(ch)));
+
+  send_to_char(ch,
+    "\ty| \tCExp\tn: %s  \tCGold\tn: %s  \tCQuestPts\tn: %s \ty|\r\n",
+    to_binary(GET_EXP(ch)), to_binary(GET_GOLD(ch)), to_binary(GET_QUESTPOINTS(ch)));
+
+  if (GET_LEVEL(ch) < LVL_IMMORT) {
+    send_to_char(ch,
+      "\ty| \tCExp to Next Level\tn: %s \ty|\r\n",
+      to_binary(level_exp(GET_CLASS(ch), GET_LEVEL(ch) + 1) - GET_EXP(ch)));
+  }
+
+  send_to_char(ch,
+    "\ty| \tCQuests Completed\tn: %s \ty|\r\n",
+    to_binary(GET_NUM_QUESTS(ch)));
+
+  if (GET_QUEST(ch) == NOTHING)
+    send_to_char(ch, "\ty| \tCActive Quest\tn: \trNONE\tn \ty|\r\n");
+  else {
+    send_to_char(ch, "\ty| \tCActive Quest\tn: \tc%s \ty|\r\n",
+      QST_NAME(real_quest(GET_QUEST(ch))));
+  }
+
+  playing_time = *real_time_passed(
+      (time(0) - ch->player.time.logon) +
+      ch->player.time.played, 0);
+  send_to_char(ch,
+    "\ty| \tCPlayed\tn: %s day(s), %s hour(s) \ty|\r\n",
+    to_binary(playing_time.day), to_binary(playing_time.hours));
+
+  send_to_char(ch,
+    "\ty| \tCRank\tn: \tc%s \tc%s \tC(Level\tn %s\tC)\ty|\r\n",
+    GET_NAME(ch), GET_TITLE(ch), to_binary(GET_LEVEL(ch)));
+
+  send_to_char(ch,
+    "\ty+---------------------------------------------------------------------+\tn\r\n");
+
+  /* Position */
+  send_to_char(ch, "\tCStatus\tn: ");
+  switch (GET_POS(ch)) {
+    case POS_DEAD:       send_to_char(ch, "\tr0bDEAD\tn\r\n"); break;
+    case POS_MORTALLYW:  send_to_char(ch, "\tr0bMORTALLY_WOUNDED\tn\r\n"); break;
+    case POS_INCAP:      send_to_char(ch, "\tr0bINCAPACITATED\tn\r\n"); break;
+    case POS_STUNNED:    send_to_char(ch, "\tr0bSTUNNED\tn\r\n"); break;
+    case POS_SLEEPING:   send_to_char(ch, "0bSLEEPING\r\n"); break;
+    case POS_RESTING:    send_to_char(ch, "0bRESTING\r\n"); break;
+    case POS_SITTING:
+      if (!SITTING(ch))
+        send_to_char(ch, "0bSITTING\r\n");
+      else
+        send_to_char(ch, "0bSITTING on %s\r\n", SITTING(ch)->short_description);
+      break;
+    case POS_FIGHTING:
+      send_to_char(ch, "0bFIGHTING %s\r\n",
+        FIGHTING(ch) ? PERS(FIGHTING(ch), ch) : "thin air");
+      break;
+    case POS_STANDING:   send_to_char(ch, "0bSTANDING\r\n"); break;
+    default:             send_to_char(ch, "0bUNKNOWN_STATE\r\n"); break;
+  }
+
+  /* Conditions */
+  if (GET_COND(ch, DRUNK) > 10)
+    send_to_char(ch, "\tyCondition\tn: \tr0bDRUNK\tn\r\n");
+  if (GET_COND(ch, HUNGER) == 0)
+    send_to_char(ch, "\tyCondition\tn: \tr0bHUNGRY\tn\r\n");
+  if (GET_COND(ch, THIRST) == 0)
+    send_to_char(ch, "\tyCondition\tn: \tr0bTHIRSTY\tn\r\n");
+
+  /* Affects */
+  if (AFF_FLAGGED(ch, AFF_BLIND) && GET_LEVEL(ch) < LVL_IMMORT)
+    send_to_char(ch, "\tyAffect\tn: \tr0bBLIND\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_INVISIBLE))
+    send_to_char(ch, "\tyAffect\tn: \tc0bINVISIBLE\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_DETECT_INVIS))
+    send_to_char(ch, "\tyAffect\tn: \tc0bDETECT_INVISIBLE\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_SANCTUARY))
+    send_to_char(ch, "\tyAffect\tn: \tc0bSANCTUARY\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_POISON))
+    send_to_char(ch, "\tyAffect\tn: \tr0bPOISONED\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_CHARM))
+    send_to_char(ch, "\tyAffect\tn: \tc0bCHARMED\tn\r\n");
+  if (affected_by_spell(ch, SPELL_ARMOR))
+    send_to_char(ch, "\tyAffect\tn: \tc0bARMOR\tn\r\n");
+  if (AFF_FLAGGED(ch, AFF_INFRAVISION))
+    send_to_char(ch, "\tyAffect\tn: \tc0bINFRAVISION\tn\r\n");
+  if (PRF_FLAGGED(ch, PRF_SUMMONABLE))
+    send_to_char(ch, "\tyFlag\tn: \tc0bSUMMONABLE\tn\r\n");
+
+  if (GET_LEVEL(ch) >= LVL_IMMORT) {
+    send_to_char(ch, "\tyOLC Zone\tn: %s\r\n", to_binary(GET_OLC_ZONE(ch)));
   }
 }
 
@@ -2688,3 +2974,63 @@ ACMD(do_damagenumbers) {
     send_to_char(ch, "Damage numbers enabled.\r\n");
   }
 }
+
+ACMD(do_affects)
+{
+  struct affected_type *aff;
+  char buf[MAX_STRING_LENGTH];
+  int i, j;
+
+  if (!ch->affected) {
+    send_to_char(ch, "You aren't affected by anything.\r\n");
+    return;
+  }
+
+  send_to_char(ch, "%s---%s %sAffections%s %s---%s\r\n",
+             CCWHT(ch, C_NRM),
+             CCNRM(ch, C_NRM),
+             CCWHT(ch, C_NRM),
+             CCNRM(ch, C_NRM),
+             CCWHT(ch, C_NRM),
+             CCNRM(ch, C_NRM));
+
+  for (aff = ch->affected; aff; aff = aff->next) {
+    /* Spell and duration */
+    send_to_char(ch, "%sSpell%s: (%s%3d%s hr) %s%-20s%s",
+                 CCCYN(ch, C_NRM),  /* Bright Cyan */
+                 CCNRM(ch, C_NRM),
+                 CCGRN(ch, C_NRM),  /* Bright Green */
+                 aff->duration + 1,
+                 CCNRM(ch, C_NRM),
+                 CCWHT(ch, C_NRM),  /* Bright White */
+                 spell_info[aff->spell].name,
+                 CCNRM(ch, C_NRM));
+
+    /* Modifier */
+    if (aff->modifier) {
+      send_to_char(ch, " %s[%+d %s]%s",
+                   CCYEL(ch, C_NRM),  /* Bright Yellow */
+                   aff->modifier,
+                   apply_types[(int)aff->location],
+                   CCNRM(ch, C_NRM));
+    }
+
+    /* Bitvectors */
+    for (i = 0; i < AF_ARRAY_MAX; i++) {
+      for (j = 0; j < 32; j++) {
+        if (IS_SET(aff->bitvector[i], (1 << j))) {
+          snprintf(buf, sizeof(buf), " %ssets %s%s",
+                   CCMAG(ch, C_NRM),  /* Bright Magenta */
+                   affected_bits[i * 32 + j],
+                   CCNRM(ch, C_NRM));
+          send_to_char(ch, "%s", buf);
+        }
+      }
+    }
+
+    /* Line break */
+    send_to_char(ch, "\r\n");
+  }
+}
+
+

@@ -1573,6 +1573,12 @@ void broadcast_game_message(const char *fmt, ...)
   }
 }
 
+/**
+ * Returns the experience percentage bonus for a character.
+ * This is the sum of all experience percentage bonuses from equipment and affects.
+ * @param ch The character to check for experience percentage bonuses.
+ * @return The total experience percentage bonus.
+ */
 int get_exp_percentage_bonus(struct char_data *ch) {
   int mod = 0;
   struct obj_data *obj;
@@ -1599,3 +1605,64 @@ int get_exp_percentage_bonus(struct char_data *ch) {
 
   return mod;
 }
+
+/**
+ * Returns the critical chance modifier for a character.
+ * This is the sum of all critical chance modifiers from equipment and affects.
+ * @param ch The character to check for critical chance modifiers.
+ * @return The total critical chance modifier.
+ */
+int get_crit_chance(struct char_data *ch) {
+  int mod = 0;
+  struct affected_type *af;
+  int i, j;
+
+  /* Check worn equipment */
+  for (i = 0; i < NUM_WEARS; i++) {
+    if (GET_EQ(ch, i)) {
+      for (j = 0; j < MAX_OBJ_AFFECT; j++) {
+        if (GET_EQ(ch, i)->affected[j].location == APPLY_CRITICAL_CHANCE)
+          mod += GET_EQ(ch, i)->affected[j].modifier;
+      }
+    }
+  }
+
+  /* Check active affects */
+  for (af = ch->affected; af; af = af->next) {
+    if (af->location == APPLY_CRITICAL_CHANCE)
+      mod += af->modifier;
+  }
+
+  return mod;
+}
+
+/**
+ * Returns the critical damage modifier for a character.
+ * This is the sum of all critical damage modifiers from equipment and affects.
+ * @param ch The character to check for critical damage modifiers.
+ * @return The total critical damage modifier.
+ */
+int get_crit_damage(struct char_data *ch) {
+  int mod = 0;
+  struct affected_type *af;
+  int i, j;
+
+  /* Check worn equipment */
+  for (i = 0; i < NUM_WEARS; i++) {
+    if (GET_EQ(ch, i)) {
+      for (j = 0; j < MAX_OBJ_AFFECT; j++) {
+        if (GET_EQ(ch, i)->affected[j].location == APPLY_CRITICAL_DAMAGE)
+          mod += GET_EQ(ch, i)->affected[j].modifier;
+      }
+    }
+  }
+
+  /* Check active affects */
+  for (af = ch->affected; af; af = af->next) {
+    if (af->location == APPLY_CRITICAL_DAMAGE)
+      mod += af->modifier;
+  }
+
+  return mod;
+}
+
