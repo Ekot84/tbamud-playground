@@ -112,6 +112,7 @@ void list_skills(struct char_data *ch)
 SPECIAL(guild)
 {
   int skill_num;
+  int refunded = 0;
   char arg[MAX_INPUT_LENGTH];
 
   if (IS_NPC(ch))
@@ -132,11 +133,15 @@ SPECIAL(guild)
 
       GET_GOLD(ch) -= cost;
 
-      for (int i = 0; i <= TOP_SPELL_DEFINE; i++) {
+      for (int i = 1; i <= TOP_SPELL_DEFINE; i++) {
+        if (GET_SKILL(ch, i) > 0)
+        refunded++;
         SET_SKILL(ch, i, 0);
       }
+    GET_PRACTICES(ch) += refunded;
 
       send_to_char(ch, "\tYAll your skills and abilities have been reset!\tn\r\n");
+      send_to_char(ch, "You paid %d gold coins for the respec.\r\n", cost);
       act("$n resets all skills and abilities with $N's help.", FALSE, ch, NULL, (struct char_data *)me, TO_ROOM);
       return TRUE;
     }
@@ -157,9 +162,12 @@ SPECIAL(guild)
     }
 
     GET_GOLD(ch) -= cost;
+    GET_PRACTICES(ch)++;
     SET_SKILL(ch, skill_num, 0);
 
-    send_to_char(ch, "You have reset your knowledge of %s.\r\n", spell_info[skill_num].name);
+    send_to_char(ch, "You have reset your knowledge of %s and regained 1 practice session.\r\n",
+             spell_info[skill_num].name);
+    send_to_char(ch, "You paid %d gold coins for this respec.\r\n", cost);
     act("$n resets an ability with $N's help.", FALSE, ch, NULL, (struct char_data *)me, TO_ROOM);
 
     return TRUE;

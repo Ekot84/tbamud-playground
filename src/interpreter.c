@@ -345,6 +345,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "report"   , "repo"    , POS_RESTING , do_report   , 0, 0 },
   { "reroll"   , "rero"    , POS_DEAD    , do_wizutil  , LVL_GRGOD, SCMD_REROLL },
   { "rescue"   , "resc"    , POS_FIGHTING, do_rescue   , 1, 0 },
+  { "respec"   , "respec"  , POS_RESTING, do_respec, 0, 0 },
   { "restore"  , "resto"   , POS_DEAD    , do_restore  , LVL_GOD, 0 },
   { "return"   , "retu"    , POS_DEAD    , do_return   , 0, 0 },
   { "redit"    , "redit"   , POS_DEAD    , do_oasis_redit, LVL_BUILDER, 0 },

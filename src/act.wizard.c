@@ -1611,7 +1611,7 @@ ACMD(do_restore)
       update_pos(vict);
       affect_total(vict);
 
-      act("@Y$N engulfs you in a pillar of @RFI@YRE@W that restores you to perfect health!@n", 
+      act("\tW$N engulfs you in a pillar of \tRFI\tYRE\tW that restores you to perfect health!\tn", 
           FALSE, vict, 0, ch, TO_CHAR);
       send_to_char(ch, "%s has been fully restored.\r\n", GET_NAME(vict));
     }
@@ -1653,7 +1653,7 @@ ACMD(do_restore)
     affect_total(vict);
 
     send_to_char(ch, "%s", CONFIG_OK);
-    act("@Y$N engulfs you in a pillar of @RFI@YRE@W that restores you to perfect health!@n",
+    act("\tW$N engulfs you in a pillar of \tRFI\tYRE\tW that restores you to perfect health!\tn",
         FALSE, vict, 0, ch, TO_CHAR);
   }
 }

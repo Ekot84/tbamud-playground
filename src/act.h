@@ -249,6 +249,7 @@ ACMD(do_hide);
 ACMD(do_not_here);
 ACMD(do_practice);
 ACMD(do_report);
+ACMD(do_respec);
 ACMD(do_save);
 ACMD(do_sneak);
 ACMD(do_split);

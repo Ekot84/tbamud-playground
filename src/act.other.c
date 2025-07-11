@@ -279,6 +279,21 @@ ACMD(do_steal)
     hit(vict, ch, TYPE_UNDEFINED);
 }
 
+ACMD(do_respec)
+{
+  char arg[MAX_INPUT_LENGTH];
+
+  if (IS_NPC(ch))
+    return;
+
+  one_argument(argument, arg);
+
+  if (*arg)
+    send_to_char(ch, "You can only practice skills in your guild.\r\n");
+  else
+    list_skills(ch);
+}
+
 ACMD(do_practice)
 {
   char arg[MAX_INPUT_LENGTH];
