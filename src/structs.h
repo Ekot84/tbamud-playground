@@ -1181,6 +1181,17 @@ struct kill_node {
    struct kill_node *next;
 };
 
+/** A node in the list of cooldowns for a character.
+ * This is used to track spells that are on cooldown for a character.
+ * The timer is how many heartbeats until the spell can be used again,
+ * and spellnum is the virtual number of the spell. */
+struct cooldown_node {
+   int timer;
+   int spellnum;
+
+   struct cooldown_node *next;
+};
+
 /** The list element that makes up a list of characters following this
  * character. */
 struct follow_type
@@ -1231,6 +1242,7 @@ struct char_data
   struct list_data * events;
 
   struct kill_node *kill_mem; /**< List of mobs killed by this character */
+  struct cooldown_node *cooldown; /**< List of spells on cooldown for this character */
 };
 
 /** descriptor-related structures */

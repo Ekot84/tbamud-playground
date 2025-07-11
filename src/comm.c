@@ -992,6 +992,7 @@ void heartbeat(int heart_pulse)
   if (!(heart_pulse % PASSES_PER_SEC)) {    /* EVERY second */
     msdp_update();
     next_tick--;
+    update_cooldowns();
   }
 
   if (!(heart_pulse % PULSE_ZONE))

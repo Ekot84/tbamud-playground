@@ -3033,4 +3033,17 @@ ACMD(do_affects)
   }
 }
 
+ACMD(do_cooldowns)
+{
+    struct cooldown_node *cd, *next_cd;
 
+  send_to_char(ch, "Cooldowns:\tn\r\n");
+  send_to_char(ch, "----------\tn\r\n");
+  if (ch->cooldown) {
+    for (cd = ch->cooldown; cd; cd = next_cd) {
+      next_cd = cd->next; 
+      send_to_char(ch, "(%3ds) %s%-21s%s ", cd->timer + 1, CCCYN(ch, C_NRM), spell_info[cd->spellnum].name, CCNRM(ch, C_NRM));
+      send_to_char(ch, "\r\n");
+    }
+  }
+}

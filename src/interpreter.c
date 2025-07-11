@@ -193,6 +193,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "close"    , "cl"      , POS_SITTING , do_gen_door , 0, SCMD_CLOSE },
   { "clear"    , "cle"     , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
   { "cls"      , "cls"     , POS_DEAD    , do_gen_ps   , 0, SCMD_CLEAR },
+  { "cooldowns", "cds"     , POS_DEAD    , do_cooldowns, 0, 0 },
   { "collectitem", "collectitem", POS_STANDING, do_collectitem, 0, 0 },
   { "consider" , "con"     , POS_RESTING , do_consider , 0, 0 },
   { "commands" , "com"     , POS_DEAD    , do_commands , 0, SCMD_COMMANDS },

@@ -32,6 +32,7 @@ static int extractions_pending = 0;
 static int apply_ac(struct char_data *ch, int eq_pos);
 static void update_object(struct obj_data *obj, int use);
 static void affect_modify_ar(struct char_data * ch, byte loc, sbyte mod, int bitv[], bool add);
+void cooldown_remove(struct char_data * ch, struct cooldown_node * cd);
 
 char *fname(const char *namelist)
 {
@@ -872,6 +873,7 @@ void extract_char_final(struct char_data *ch)
   struct descriptor_data *d;
   struct obj_data *obj;
   int i;
+  struct cooldown_node *cd = NULL, *next_cd = NULL;
   struct kill_node *kill = NULL, *next_kill = NULL;
 
   for (kill = ch->kill_mem; kill; kill = next_kill) {
@@ -978,6 +980,12 @@ void extract_char_final(struct char_data *ch)
       extract_script_mem(SCRIPT_MEM(ch));
   } else {
     save_char(ch);
+        if(ch->cooldown) {
+      for (cd = ch->cooldown; cd; cd = next_cd) {
+         next_cd = cd->next;
+         cooldown_remove(ch, cd);
+      }
+    }
     Crash_delete_crashfile(ch);
   }
 

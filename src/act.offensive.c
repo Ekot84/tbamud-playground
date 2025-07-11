@@ -21,6 +21,9 @@
 #include "fight.h"
 #include "mud_event.h"
 
+void add_cooldown_timer(struct char_data *ch, int spellnum);
+int get_cooldown_timer(struct char_data *ch, int spellnum);
+
 ACMD(do_assist)
 {
   char arg[MAX_INPUT_LENGTH];
@@ -126,13 +129,16 @@ ACMD(do_backstab)
 {
   char buf[MAX_INPUT_LENGTH];
   struct char_data *vict;
-  int percent, prob;
+  int percent, prob, cd = 0;
 
   if (IS_NPC(ch) || !GET_SKILL(ch, SKILL_BACKSTAB)) {
     send_to_char(ch, "You have no idea how to do that.\r\n");
     return;
   }
-
+  if((cd = get_cooldown_timer(ch, SKILL_BACKSTAB)) > 0) {
+    send_to_char(ch, "You must wait %d pulses before using %s\r\n", cd, spell_info[SKILL_BACKSTAB].name);
+    return;
+  }
   one_argument(argument, buf);
 
   if (!(vict = get_char_vis(ch, buf, NULL, FIND_CHAR_ROOM))) {
@@ -171,8 +177,9 @@ ACMD(do_backstab)
     damage(ch, vict, 0, SKILL_BACKSTAB);
   else
     hit(ch, vict, SKILL_BACKSTAB);
+    add_cooldown_timer(ch, SKILL_BACKSTAB);
 
-  WAIT_STATE(ch, 2 * PULSE_VIOLENCE);
+  //WAIT_STATE(ch, 2 * PULSE_VIOLENCE);
 }
 
 ACMD(do_order)
@@ -492,10 +499,14 @@ ACMD(do_kick)
 {
   char arg[MAX_INPUT_LENGTH];
   struct char_data *vict;
-  int percent, prob;
+  int percent, prob, cd = 0;
 
   if (IS_NPC(ch) || !GET_SKILL(ch, SKILL_KICK)) {
     send_to_char(ch, "You have no idea how.\r\n");
+    return;
+  }
+  if((cd = get_cooldown_timer(ch, SKILL_KICK)) > 0) {
+    send_to_char(ch, "You must wait %d pulses before using %s\r\n", cd, spell_info[SKILL_KICK].name);
     return;
   }
 
@@ -521,8 +532,9 @@ ACMD(do_kick)
     damage(ch, vict, 0, SKILL_KICK);
   } else
     damage(ch, vict, GET_LEVEL(ch) / 2, SKILL_KICK);
+    add_cooldown_timer(ch, SKILL_KICK);
 
-  WAIT_STATE(ch, PULSE_VIOLENCE * 3);
+  //WAIT_STATE(ch, PULSE_VIOLENCE * 3);
 }
 
 ACMD(do_bandage)

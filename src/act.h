@@ -47,6 +47,8 @@ ACMD(do_page);
 ACMD(do_reply);
 ACMD(do_tell);
 ACMD(do_write);
+void update_cooldowns();
+
 /*****************************************************************************
  * Begin Functions and defines for act.informative.c
  ****************************************************************************/
@@ -108,6 +110,7 @@ ACMD(do_whois);
 ACMD(do_killlist);
 ACMD(do_damagenumbers); /**< Toggle showing damage numbers in combat */
 ACMD(do_affects); /**< Show active affects on the character */
+ACMD(do_cooldowns); /** Show active cooldowns on the character */
 
 /*****************************************************************************
  * Begin Functions and defines for act.item.c
