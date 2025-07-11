@@ -229,9 +229,9 @@ if (IS_SET(SINFO.routines, MAG_MASSES))
 if (IS_SET(SINFO.routines, MAG_AREAS))
   mag_areas(level, caster, spellnum, 0);
 
-if (IS_SET(SINFO.routines, MAG_SUMMONS))
+if (IS_SET(SINFO.routines, MAG_SUMMONS)) {
   mag_summons(level, caster, ovict, spellnum, 0);
-
+}
 
   if (IS_SET(SINFO.routines, MAG_CREATIONS))
     mag_creations(level, caster, spellnum);

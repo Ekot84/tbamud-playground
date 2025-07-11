@@ -476,10 +476,10 @@ void advance_level(struct char_data *ch)
 
 if (IS_MAGIC_USER(ch) || IS_CLERIC(ch))
   GET_PRACTICES(ch) += MAX(2, GET_WIS(ch) / 20);
-else
+else 
   GET_PRACTICES(ch) += MIN(2, MAX(1, GET_WIS(ch) / 20));
 
-  if (GET_LEVEL(ch) >= LVL_IMMORT) {
+if (GET_LEVEL(ch) >= LVL_IMMORT) {
     for (i = 0; i < 3; i++)
       GET_COND(ch, i) = (char) -1;
     SET_BIT_AR(PRF_FLAGS(ch), PRF_HOLYLIGHT);

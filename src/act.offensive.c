@@ -173,12 +173,12 @@ ACMD(do_backstab)
   percent = rand_number(1, 101);	/* 101% is a complete failure */
   prob = GET_SKILL(ch, SKILL_BACKSTAB);
 
-  if (AWAKE(vict) && (percent > prob))
+  if (AWAKE(vict) && (percent > prob)) {
     damage(ch, vict, 0, SKILL_BACKSTAB);
-  else
+  } else {
     hit(ch, vict, SKILL_BACKSTAB);
     add_cooldown_timer(ch, SKILL_BACKSTAB);
-
+  }
   //WAIT_STATE(ch, 2 * PULSE_VIOLENCE);
 }
 
@@ -530,10 +530,10 @@ ACMD(do_kick)
 
   if (percent > prob) {
     damage(ch, vict, 0, SKILL_KICK);
-  } else
+  } else {
     damage(ch, vict, GET_LEVEL(ch) / 2, SKILL_KICK);
     add_cooldown_timer(ch, SKILL_KICK);
-
+  }
   //WAIT_STATE(ch, PULSE_VIOLENCE * 3);
 }
 
