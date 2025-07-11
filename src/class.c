@@ -112,9 +112,9 @@ bitvector_t find_class_bitvector(const char *arg)
 
 int prac_params[4][NUM_CLASSES] = {
   /* MAG	CLE	THE	WAR */
-  { 95,		95,	85,	80	},	/* learned level */
-  { 100,	100,	12,	12	},	/* max per practice */
-  { 25,		25,	0,	0	},	/* min per practice */
+  { 100,	100,	100,	100	},	/* learned level */
+  { 100,	100,	100,	100	},	/* max per practice */
+  { 0,		0,	0,	0	},	/* min per practice */
   { SPELL,	SPELL,	SKILL,	SKILL	},	/* prac name */
 };
 
@@ -135,7 +135,7 @@ struct guild_info_type guild_info[] = {
  { CLASS_WARRIOR,       3021,    EAST   },
 
 /* Brass Dragon */
-  { -999 /* all */ ,	5065,	WEST	},
+// { -999 /* all */ ,	5065,	WEST	},
 
 /* this must go last -- add new guards above! */
   { -1, NOWHERE, -1}

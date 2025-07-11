@@ -558,6 +558,7 @@ do                                                              \
 /** Elemental Resistance */
 #define GET_ELEMENTAL_RESISTANCE(ch) ((ch)->char_specials.saved.elemental_resistance)
 
+
 /** Alignment value for ch. */
 #define GET_ALIGNMENT(ch) ((ch)->char_specials.saved.alignment)
 

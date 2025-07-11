@@ -525,8 +525,13 @@
 /** Total number of applies */
 #define NUM_APPLIES   26
 
+/* Level related defines */
 #define LEVEL_EXP_MULTIPLIER 0.09 /**< Multiplier for exp per level */
 #define LEVEL_EXP_MULTIPLIER_SQR 12 /**< Square of the multiplier for exp per level */
+
+/* Respec price per level for SPELLS & SKILLS */
+#define RESPEC_COST_PER_LEVEL 5000 /**< Cost to respec per level */
+#define RESPEC_SINGLE_ABILITY_COST_PER_LEVEL 50 /**< Cost to respec a single ability per level */
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/
@@ -1103,8 +1108,6 @@ struct player_special_data_saved
   sh_int apply_stamina_regeneration; /**< Stamina regeneration bonus */
   sh_int apply_mana_regeneration; /**< Mana regeneration bonus */
   sh_int apply_health_regeneration; /**< Health regeneration bonus */
-  int crit_chance; /**< Critical hit chance bonus */
-  int crit_damage; /**< Critical hit damage bonus */
   int wimp_level;         /**< Below this # of hit points, flee! */
   byte freeze_level;      /**< Level of god who froze char, if any */
   sh_int invis_level;     /**< level of invisibility */

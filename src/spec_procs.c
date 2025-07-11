@@ -30,8 +30,8 @@
 
 /* locally defined functions of local (file) scope */
 static int compare_spells(const void *x, const void *y);
-static const char *how_good(int percent);
 static void npc_steal(struct char_data *ch, struct char_data *victim);
+const char *ability_status(int percent);
 
 /* Special procedures for mobiles. */
 static int spell_sort_info[MAX_SKILLS + 1];
@@ -57,29 +57,6 @@ void sort_spells(void)
   qsort(&spell_sort_info[1], MAX_SKILLS, sizeof(int), compare_spells);
 }
 
-static const char *how_good(int percent)
-{
-  if (percent < 0)
-    return " (error)";
-  if (percent == 0)
-    return " (not learned)";
-  if (percent <= 10)
-    return " (awful)";
-  if (percent <= 20)
-    return " (bad)";
-  if (percent <= 40)
-    return " (poor)";
-  if (percent <= 55)
-    return " (average)";
-  if (percent <= 70)
-    return " (fair)";
-  if (percent <= 80)
-    return " (good)";
-  if (percent <= 85)
-    return " (very good)";
-
-  return " (superb)";
-}
 
 static const char *prac_types[] = {
   "spell",
@@ -96,6 +73,15 @@ static const char *prac_types[] = {
 #define MAXGAIN(ch) (prac_params[MAX_PER_PRAC][(int)GET_CLASS(ch)])
 #define SPLSKL(ch) (prac_types[prac_params[PRAC_TYPE][(int)GET_CLASS(ch)]])
 
+const char *ability_status(int percent)
+{
+  if (percent <= 0)
+    return "[UNTRAINED]";
+  else
+    return "[LEARNED]";
+}
+
+
 void list_skills(struct char_data *ch)
 {
   const char *overflow = "\r\n**OVERFLOW**\r\n";
@@ -110,7 +96,8 @@ void list_skills(struct char_data *ch)
   for (sortpos = 1; sortpos <= MAX_SKILLS; sortpos++) {
     i = spell_sort_info[sortpos];
     if (GET_LEVEL(ch) >= spell_info[i].min_level[(int) GET_CLASS(ch)]) {
-    ret = snprintf(buf2 + len, sizeof(buf2) - len, "%-20s %s\r\n", spell_info[i].name, how_good(GET_SKILL(ch, i)));
+    ret = snprintf(buf2 + len, sizeof(buf2) - len, "%-20s %s\r\n",
+               spell_info[i].name, ability_status(GET_SKILL(ch, i)));
       if (ret < 0 || len + ret >= sizeof(buf2))
         break;
       len += ret;
@@ -124,20 +111,74 @@ void list_skills(struct char_data *ch)
 
 SPECIAL(guild)
 {
-  int skill_num, percent;
+  int skill_num;
+  char arg[MAX_INPUT_LENGTH];
 
-  if (IS_NPC(ch) || !CMD_IS("practice"))
-    return (FALSE);
+  if (IS_NPC(ch))
+    return FALSE;
+
+  one_argument(argument, arg);
+
+  /* Handle 'respec' command */
+  if (CMD_IS("respec")) {
+    /* No argument or 'all' = reset everything */
+    if (!*arg || !str_cmp(arg, "all")) {
+      int cost = GET_LEVEL(ch) * RESPEC_COST_PER_LEVEL;
+
+      if (GET_GOLD(ch) < cost) {
+        send_to_char(ch, "You can't afford to respec everything. It costs %d gold coins.\r\n", cost);
+        return TRUE;
+      }
+
+      GET_GOLD(ch) -= cost;
+
+      for (int i = 0; i <= TOP_SPELL_DEFINE; i++) {
+        SET_SKILL(ch, i, 0);
+      }
+
+      send_to_char(ch, "\tYAll your skills and abilities have been reset!\tn\r\n");
+      act("$n resets all skills and abilities with $N's help.", FALSE, ch, NULL, (struct char_data *)me, TO_ROOM);
+      return TRUE;
+    }
+
+    /* respec <ability> = reset one ability */
+    skill_num = find_skill_num(arg);
+
+    if (skill_num < 1 || GET_SKILL(ch, skill_num) == 0) {
+      send_to_char(ch, "You don't know that ability.\r\n");
+      return TRUE;
+    }
+
+    int cost = GET_LEVEL(ch) * RESPEC_SINGLE_ABILITY_COST_PER_LEVEL;
+
+    if (GET_GOLD(ch) < cost) {
+      send_to_char(ch, "You can't afford to respec that ability. It costs %d gold coins.\r\n", cost);
+      return TRUE;
+    }
+
+    GET_GOLD(ch) -= cost;
+    SET_SKILL(ch, skill_num, 0);
+
+    send_to_char(ch, "You have reset your knowledge of %s.\r\n", spell_info[skill_num].name);
+    act("$n resets an ability with $N's help.", FALSE, ch, NULL, (struct char_data *)me, TO_ROOM);
+
+    return TRUE;
+  }
+
+  /* Handle 'practice' command */
+  if (!CMD_IS("practice"))
+    return FALSE;
 
   skip_spaces(&argument);
 
   if (!*argument) {
     list_skills(ch);
-    return (TRUE);
+    return TRUE;
   }
+
   if (GET_PRACTICES(ch) <= 0) {
     send_to_char(ch, "You do not seem to be able to practice now.\r\n");
-    return (TRUE);
+    return TRUE;
   }
 
   skill_num = find_skill_num(argument);
@@ -145,24 +186,20 @@ SPECIAL(guild)
   if (skill_num < 1 ||
       GET_LEVEL(ch) < spell_info[skill_num].min_level[(int) GET_CLASS(ch)]) {
     send_to_char(ch, "You do not know of that %s.\r\n", SPLSKL(ch));
-    return (TRUE);
+    return TRUE;
   }
-  if (GET_SKILL(ch, skill_num) >= LEARNED(ch)) {
-    send_to_char(ch, "You are already learned in that area.\r\n");
-    return (TRUE);
+
+  if (GET_SKILL(ch, skill_num) > 0) {
+    send_to_char(ch, "You have already learned that ability.\r\n");
+    return TRUE;
   }
-  send_to_char(ch, "You practice for a while...\r\n");
+
+  send_to_char(ch, "You practice %s and master it fully.\r\n", spell_info[skill_num].name);
   GET_PRACTICES(ch)--;
 
-  percent = GET_SKILL(ch, skill_num);
-  percent += MIN(MAXGAIN(ch), MAX(MINGAIN(ch), GET_INT(ch) / 20));
+  SET_SKILL(ch, skill_num, 100);
 
-  SET_SKILL(ch, skill_num, MIN(LEARNED(ch), percent));
-
-  if (GET_SKILL(ch, skill_num) >= LEARNED(ch))
-    send_to_char(ch, "You are now learned in that area.\r\n");
-
-  return (TRUE);
+  return TRUE;
 }
 
 SPECIAL(dump)
