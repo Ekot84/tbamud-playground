@@ -98,30 +98,75 @@ const char *ability_status(int percent)
 
 void list_skills(struct char_data *ch)
 {
-  const char *overflow = "\r\n**OVERFLOW**\r\n";
-  int i, sortpos, ret;
   size_t len = 0;
+  int i, sortpos, ret;
+  bool any_learned = FALSE;
   char buf2[MAX_STRING_LENGTH];
+  const char *overflow = "\r\n**OVERFLOW**\r\n";
 
-  len = snprintf(buf2, sizeof(buf2), "You have %d practice session%s remaining.\r\n"
-	"You know of the following %ss:\r\n", GET_PRACTICES(ch),
-	GET_PRACTICES(ch) == 1 ? "" : "s", SPLSKL(ch));
+  len = snprintf(buf2, sizeof(buf2),
+    "You have %d practice session%s remaining.\r\n",
+    GET_PRACTICES(ch),
+    GET_PRACTICES(ch) == 1 ? "" : "s");
+
+  /* Learned abilities first */
+  len += snprintf(buf2 + len, sizeof(buf2) - len,
+    "\r\n\tyLearned Abilities:\tn\r\n");
 
   for (sortpos = 1; sortpos <= MAX_SKILLS; sortpos++) {
     i = spell_sort_info[sortpos];
-    if (GET_LEVEL(ch) >= spell_info[i].min_level[(int) GET_CLASS(ch)]) {
-    ret = snprintf(buf2 + len, sizeof(buf2) - len, "%-20s %s\r\n",
-               spell_info[i].name, ability_status(GET_SKILL(ch, i)));
+
+    if (GET_LEVEL(ch) >= spell_info[i].min_level[(int) GET_CLASS(ch)] &&
+        GET_SKILL(ch, i) > 0) {
+
+      ret = snprintf(buf2 + len, sizeof(buf2) - len,
+        "%-24s LV: %-3d  Mana: %-3d  CD: %d sec\r\n",
+        spell_info[i].name,
+        spell_info[i].min_level[(int) GET_CLASS(ch)],
+        mag_manacost(ch, i),
+        cooldown_(ch, i));
+
+      if (ret < 0 || len + ret >= sizeof(buf2))
+        break;
+      len += ret;
+      any_learned = TRUE;
+    }
+  }
+
+  if (!any_learned) {
+    len += snprintf(buf2 + len, sizeof(buf2) - len,
+      "  None.\r\n");
+  }
+
+  /* Untrained abilities */
+  len += snprintf(buf2 + len, sizeof(buf2) - len,
+    "\r\n\tyUntrained Abilities:\tn\r\n");
+
+  for (sortpos = 1; sortpos <= MAX_SKILLS; sortpos++) {
+    i = spell_sort_info[sortpos];
+
+    if (GET_LEVEL(ch) >= spell_info[i].min_level[(int) GET_CLASS(ch)] &&
+        GET_SKILL(ch, i) == 0) {
+
+      ret = snprintf(buf2 + len, sizeof(buf2) - len,
+        "%-24s LV: %-3d  Mana: %-3d  CD: %d sec\r\n",
+        spell_info[i].name,
+        spell_info[i].min_level[(int) GET_CLASS(ch)],
+        mag_manacost(ch, i),
+        cooldown_(ch, i));
+
       if (ret < 0 || len + ret >= sizeof(buf2))
         break;
       len += ret;
     }
   }
+
   if (len >= sizeof(buf2))
-    strcpy(buf2 + sizeof(buf2) - strlen(overflow) - 1, overflow); /* strcpy: OK */
+    strcpy(buf2 + sizeof(buf2) - strlen(overflow) - 1, overflow);
 
   page_string(ch->desc, buf2, TRUE);
 }
+
 
 SPECIAL(guild)
 {
