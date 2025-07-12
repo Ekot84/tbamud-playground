@@ -129,13 +129,6 @@ void assign_mobiles(void)
 /* assign special procedures to objects */
 void assign_objects(void)
 {
-  ASSIGNOBJ(1226, gen_board);   /* builder's board */
-  ASSIGNOBJ(1227, gen_board);   /* staff board */
-  ASSIGNOBJ(1228, gen_board);   /* advertising board */
-  ASSIGNOBJ(3096, gen_board);	/* social board */
-  ASSIGNOBJ(3097, gen_board);	/* freeze board */
-  ASSIGNOBJ(3098, gen_board);	/* immortal board */
-  ASSIGNOBJ(3099, gen_board);	/* mortal board */
 
  // ASSIGNOBJ(115, bank);
  // ASSIGNOBJ(334, bank);	        /* atm */
@@ -184,7 +177,6 @@ static struct spec_func_data spec_func_list[] = {
   {"Postmaster",     postmaster }, 
   {"Receptionist",   receptionist }, 
   {"Cryogenicist",   cryogenicist}, 
-  {"Bulletin Board", gen_board }, 
   {"Bank",           bank }, 
   {"Pet Shop",       pet_shops }, 
   {"Dump",           dump }, 

@@ -47,6 +47,7 @@ ACMD(do_page);
 ACMD(do_reply);
 ACMD(do_tell);
 ACMD(do_write);
+ACMD(do_respond);
 void update_cooldowns();
 
 /*****************************************************************************
@@ -234,6 +235,7 @@ ACMD(do_gen_tog);
 #define SCMD_PAGELENGTH  31
 #define SCMD_SCREENWIDTH 32
 #define SCMD_COLOR       33
+#define SCMD_VIEWORDER   34
 
 /* do_quit */
 ACMD(do_quit);

@@ -756,7 +756,9 @@ ACMD(do_gen_tog)
     {"Autodoor disabled.\r\n",
     "Autodoor enabled.\r\n"},
     {"ZoneResets disabled.\r\n",
-    "ZoneResets enabled.\r\n"}
+    "ZoneResets enabled.\r\n"},
+    {"Viewing newest board messages first.\r\n"},
+    {"Viewing oldest board messages first.\r\n"}
   };
 
   if (IS_NPC(ch))
@@ -876,6 +878,9 @@ ACMD(do_gen_tog)
     break;
   case SCMD_ZONERESETS:
     result = PRF_TOG_CHK(ch, PRF_ZONERESETS);
+    break;
+  case SCMD_VIEWORDER:
+    result = PRF_TOG_CHK(ch, PRF_VIEWORDER);
     break;
   default:
     log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);

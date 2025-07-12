@@ -347,6 +347,7 @@ cpp_extern const struct command_info cmd_info[] = {
   { "reroll"   , "rero"    , POS_DEAD    , do_wizutil  , LVL_GRGOD, SCMD_REROLL },
   { "rescue"   , "resc"    , POS_FIGHTING, do_rescue   , 1, 0 },
   { "respec"   , "respec"  , POS_RESTING, do_respec, 0, 0 },
+  { "respond"  , "resp"    , POS_RESTING , do_respond  , 1, 0 },
   { "restore"  , "resto"   , POS_DEAD    , do_restore  , LVL_GOD, 0 },
   { "return"   , "retu"    , POS_DEAD    , do_return   , 0, 0 },
   { "redit"    , "redit"   , POS_DEAD    , do_oasis_redit, LVL_BUILDER, 0 },
@@ -414,6 +415,7 @@ cpp_extern const struct command_info cmd_info[] = {
 
   { "value"    , "val"     , POS_STANDING, do_not_here , 0, 0 },
   { "version"  , "ver"     , POS_DEAD    , do_gen_ps   , 0, SCMD_VERSION },
+  { "vieworder", "view"    , POS_DEAD    , do_gen_tog  , 0, SCMD_VIEWORDER },
   { "visible"  , "vis"     , POS_RESTING , do_visible  , 1, 0 },
   { "vnum"     , "vnum"    , POS_DEAD    , do_vnum     , LVL_IMMORT, 0 },
   { "vstat"    , "vstat"   , POS_DEAD    , do_vstat    , LVL_IMMORT, 0 },

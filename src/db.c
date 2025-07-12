@@ -40,6 +40,7 @@
 #include "screen.h"
 #include "htree.h"
 #include <sys/stat.h>
+#include "boards.h"
 
 /*  declarations of most of the 'global' variables */
 struct config_data config_info; /* Game configuration list.	 */
@@ -128,6 +129,8 @@ struct time_info_data time_info;  /* the infomation about the time    */
 struct weather_data weather_info;	/* the infomation about the weather */
 struct player_special_data dummy_mob;	/* dummy spec area for mobs	*/
 struct reset_q_type reset_q;	    /* queue of zones to be reset	 */
+
+extern struct board_info *boards; /* our boards */
 
 struct happyhour happy_data = {0,0,0,0};
 
@@ -799,6 +802,10 @@ void boot_db(void)
     log("    Mail boot failed -- Mail system disabled");
     no_mail = 1;
   }
+
+  log("Loading boards.");
+  init_boards();
+
   log("Reading banned site and invalid-name list.");
   load_banned();
   read_invalid_list();
@@ -3683,7 +3690,7 @@ void reset_char(struct char_data *ch)
   ch->char_specials.hitgain = 0;
   ch->char_specials.managain = 0;
   ch->char_specials.movegain = 0;
-  
+
   if (GET_HIT(ch) <= 0)
     GET_HIT(ch) = 1;
   if (GET_MOVE(ch) <= 0)

@@ -30,6 +30,7 @@
 #include "quest.h"
 #include "account.h"
 #include "itemmail.h"    /**< For the has_item_mail function */
+#include "boards.h"     /**< For the board system */
 
 /* prototypes of local functions */
 /* do_diagnose utility functions */
@@ -39,7 +40,7 @@ static void do_auto_exits(struct char_data *ch);
 static void list_char_to_char(struct char_data *list, struct char_data *ch);
 static void list_one_char(struct char_data *i, struct char_data *ch);
 static void look_at_char(struct char_data *i, struct char_data *ch);
-static void look_at_target(struct char_data *ch, char *arg);
+static void look_at_target(struct char_data *ch, char *arg, int read);
 static void look_in_direction(struct char_data *ch, int dir);
 static void look_in_obj(struct char_data *ch, char *arg);
 /* do_look, do_inventory utility functions */
@@ -135,6 +136,10 @@ static void show_obj_to_char(struct obj_data *obj, struct char_data *ch, int mod
       } else
     send_to_char(ch, "It's blank.\r\n");
       return;
+    
+    case ITEM_BOARD:
+      show_board(GET_OBJ_VNUM(obj), ch);
+      break;
 
     case ITEM_DRINKCON:
       send_to_char(ch, "It looks like a drink container.");
@@ -654,12 +659,13 @@ char *find_exdesc(char *word, struct extra_descr_data *list)
  * matches the target.  First, see if there is another char in the room with
  * the name.  Then check local objs for exdescs. Thanks to Angus Mezick for
  * the suggested fix to this problem. */
-static void look_at_target(struct char_data *ch, char *arg)
+void look_at_target(struct char_data *ch, char *arg, int read)
 {
-  int bits, found = FALSE, j, fnum, i = 0;
+  int bits, found = FALSE, j, fnum, i = 0, msg = 1;
   struct char_data *found_char = NULL;
   struct obj_data *obj, *found_obj = NULL;
   char *desc;
+  char number[MAX_STRING_LENGTH];
 
   if (!ch->desc)
     return;
@@ -669,68 +675,119 @@ static void look_at_target(struct char_data *ch, char *arg)
     return;
   }
 
-  bits = generic_find(arg, FIND_OBJ_INV | FIND_OBJ_ROOM | FIND_OBJ_EQUIP |
-              FIND_CHAR_ROOM, ch, &found_char, &found_obj);
-
-  /* Is the target a character? */
-  if (found_char != NULL) {
-    look_at_char(found_char, ch);
-    if (ch != found_char) {
-      if (CAN_SEE(found_char, ch))
-    act("$n looks at you.", TRUE, ch, 0, found_char, TO_VICT);
-      act("$n looks at $N.", TRUE, ch, 0, found_char, TO_NOTVICT);
+  if (read) {
+    /* Look for board in inventory */
+    for (obj = ch->carrying; obj; obj = obj->next_content) {
+      if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+        found = TRUE;
+        break;
+      }
     }
-    return;
-  }
-
-  /* Strip off "number." from 2.foo and friends. */
-  if (!(fnum = get_number(&arg))) {
-    send_to_char(ch, "Look at what?\r\n");
-    return;
-  }
-
-  /* Does the argument match an extra desc in the room? */
-  if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != NULL && ++i == fnum) {
-    page_string(ch->desc, desc, FALSE);
-    return;
-  }
-
-  /* Does the argument match an extra desc in the char's equipment? */
-  for (j = 0; j < NUM_WEARS && !found; j++)
-    if (GET_EQ(ch, j) && CAN_SEE_OBJ(ch, GET_EQ(ch, j)))
-      if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != NULL && ++i == fnum) {
-    send_to_char(ch, "%s", desc);
-    found = TRUE;
+    /* If not found, look in room */
+    if (!obj) {
+      for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+        if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+          found = TRUE;
+          break;
+        }
       }
-
-  /* Does the argument match an extra desc in the char's inventory? */
-  for (obj = ch->carrying; obj && !found; obj = obj->next_content) {
-    if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-    send_to_char(ch, "%s", desc);
-    found = TRUE;
-      }
-  }
-
-  /* Does the argument match an extra desc of an object in the room? */
-  for (obj = world[IN_ROOM(ch)].contents; obj && !found; obj = obj->next_content)
-    if (CAN_SEE_OBJ(ch, obj))
-      if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
-    send_to_char(ch, "%s", desc);
-    found = TRUE;
-      }
-
-  /* If an object was found back in generic_find */
-  if (bits) {
-    if (!found)
-      show_obj_to_char(found_obj, ch, SHOW_OBJ_ACTION);
-    else {
-      show_obj_modifiers(found_obj, ch);
-      send_to_char(ch, "\r\n");
     }
-  } else if (!found)
-    send_to_char(ch, "You do not see that here.\r\n");
+    if (obj) {
+      arg = one_argument(arg, number);
+      if (!*number) {
+        send_to_char(ch, "Read what?\r\n");
+        return;
+      }
+
+      /* Check if it's the board's name */
+      if (isname(number, obj->name)) {
+        show_board(GET_OBJ_VNUM(obj), ch);
+      }
+      /* Check if it's not a number or has a dot */
+      else if ((!isdigit(*number) || (!(msg = atoi(number)))) ||
+               (strchr(number, '.'))) {
+        snprintf(arg, MAX_STRING_LENGTH, "%s %s", number, arg);
+        look_at_target(ch, arg, 0);
+      }
+      /* Otherwise, display the message */
+      else {
+        board_display_msg(GET_OBJ_VNUM(obj), ch, msg);
+      }
+      return;
+    }
+  } else {
+    bits = generic_find(arg, FIND_OBJ_INV | FIND_OBJ_ROOM | FIND_OBJ_EQUIP |
+                              FIND_CHAR_ROOM, ch, &found_char, &found_obj);
+
+    /* Is the target a character? */
+    if (found_char != NULL) {
+      look_at_char(found_char, ch);
+      if (ch != found_char) {
+        if (CAN_SEE(found_char, ch))
+          act("$n looks at you.", TRUE, ch, 0, found_char, TO_VICT);
+        act("$n looks at $N.", TRUE, ch, 0, found_char, TO_NOTVICT);
+      }
+      return;
+    }
+
+    /* Strip off "number." from 2.foo and friends */
+    if (!(fnum = get_number(&arg))) {
+      send_to_char(ch, "Look at what?\r\n");
+      return;
+    }
+
+    /* Check extra descs in room */
+    if ((desc = find_exdesc(arg, world[IN_ROOM(ch)].ex_description)) != NULL && ++i == fnum) {
+      page_string(ch->desc, desc, FALSE);
+      return;
+    }
+
+    /* Extra descs in equipment */
+    for (j = 0; j < NUM_WEARS && !found; j++)
+      if (GET_EQ(ch, j) && CAN_SEE_OBJ(ch, GET_EQ(ch, j)))
+        if ((desc = find_exdesc(arg, GET_EQ(ch, j)->ex_description)) != NULL && ++i == fnum) {
+          send_to_char(ch, "%s", desc);
+          found = TRUE;
+        }
+
+    /* Extra descs in inventory */
+    for (obj = ch->carrying; obj && !found; obj = obj->next_content) {
+      if (CAN_SEE_OBJ(ch, obj))
+        if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
+          if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+            show_board(GET_OBJ_VNUM(obj), ch);
+          } else {
+            send_to_char(ch, "%s", desc);
+          }
+          found = TRUE;
+        }
+    }
+
+    /* Extra descs in room objects */
+    for (obj = world[IN_ROOM(ch)].contents; obj && !found; obj = obj->next_content)
+      if (CAN_SEE_OBJ(ch, obj))
+        if ((desc = find_exdesc(arg, obj->ex_description)) != NULL && ++i == fnum) {
+          if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+            show_board(GET_OBJ_VNUM(obj), ch);
+          } else {
+            send_to_char(ch, "%s", desc);
+          }
+          found = TRUE;
+        }
+
+    /* If found_obj was set */
+    if (bits) {
+      if (!found)
+        show_obj_to_char(found_obj, ch, SHOW_OBJ_ACTION);
+      else {
+        show_obj_modifiers(found_obj, ch);
+        send_to_char(ch, "\r\n");
+      }
+    } else if (!found)
+      send_to_char(ch, "You do not see that here.\r\n");
+  }
 }
+
 
 ACMD(do_look)
 {
@@ -757,7 +814,7 @@ ACMD(do_look)
       if (!*arg)
     send_to_char(ch, "Read what?\r\n");
       else
-    look_at_target(ch, strcpy(tempsave, arg));
+    look_at_target(ch, strcpy(tempsave, arg), 1);
       return;
     }
     if (!*arg)            /* "look" alone, without an argument at all */
@@ -768,7 +825,7 @@ ACMD(do_look)
     else if ((look_type = search_block(arg, dirs, FALSE)) >= 0)
       look_in_direction(ch, look_type);
     else if (is_abbrev(arg, "at"))
-      look_at_target(ch, strcpy(tempsave, arg2));
+      look_at_target(ch, strcpy(tempsave, arg2), 0);
     else if (is_abbrev(arg, "around")) {
       struct extra_descr_data *i;
 
@@ -782,7 +839,7 @@ ACMD(do_look)
       if (!found)
          send_to_char(ch, "You couldn't find anything noticeable.\r\n");
     } else
-      look_at_target(ch, strcpy(tempsave, arg));
+      look_at_target(ch, strcpy(tempsave, arg), 0); /* look at <target> */
   }
 }
 
@@ -800,7 +857,7 @@ ACMD(do_examine)
   }
 
   /* look_at_target() eats the number. */
-  look_at_target(ch, strcpy(tempsave, arg));    /* strcpy: OK */
+  look_at_target(ch, strcpy(tempsave, arg), 0);    /* strcpy: OK */
 
   generic_find(arg, FIND_OBJ_INV | FIND_OBJ_ROOM | FIND_CHAR_ROOM |
               FIND_OBJ_EQUIP, ch, &tmp_char, &tmp_object);

@@ -18,7 +18,6 @@
 #include "dg_olc.h"
 #include "handler.h"
 #include "interpreter.h"
-#include "boards.h" /* for board_info */
 #include "htree.h"
 
 
@@ -119,10 +118,6 @@ obj_rnum adjust_objects(obj_rnum refpt)
       }
     }
   }
-
-  /* Renumber notice boards. */
-  for (i = 0; i < NUM_OF_BOARDS; i++)
-    BOARD_RNUM(i) += (BOARD_RNUM(i) >= refpt);
 
   /* Renumber shop produce. */
   for (shop = 0; shop <= top_shop; shop++)
@@ -452,10 +447,6 @@ int delete_object(obj_rnum rnum)
   top_of_objt--;
   RECREATE(obj_index, struct index_data, top_of_objt + 1);
   RECREATE(obj_proto, struct obj_data, top_of_objt + 1);
-
-  /* Renumber notice boards. */
-  for (j = 0; j < NUM_OF_BOARDS; j++)
-    BOARD_RNUM(j) -= (BOARD_RNUM(j) > rnum);
 
   /* Renumber shop produce. */
   for (shop = 0; shop <= top_shop; shop++)

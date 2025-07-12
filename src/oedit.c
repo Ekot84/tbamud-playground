@@ -45,6 +45,8 @@ static void oedit_disp_menu(struct descriptor_data *d);
 static void oedit_disp_perm_menu(struct descriptor_data *d);
 static void oedit_save_to_disk(int zone_num);
 
+extern struct board_info *bboards;
+
 /* handy macro */
 #define S_PRODUCT(s, i) ((s)->producing[(i)])
 
@@ -467,6 +469,9 @@ static void oedit_disp_val1_menu(struct descriptor_data *d)
   case ITEM_FREE2:  /* Not implemented, but should be handled here */
     oedit_disp_menu(d);
     break;
+  case ITEM_BOARD:
+    write_to_output(d, "Enter the minimum level to read this board: ");
+    break;
   default:
     mudlog(BRF, LVL_BUILDER, TRUE, "SYSERR: OLC: Reached default case in oedit_disp_val1_menu()!");
     break;
@@ -501,6 +506,9 @@ static void oedit_disp_val2_menu(struct descriptor_data *d)
   case ITEM_FOUNTAIN:
     write_to_output(d, "Initial drink units : ");
     break;
+  case ITEM_BOARD:
+    write_to_output(d, "Minimum level to write: ");
+    break;
   default:
     oedit_disp_menu(d);
   }
@@ -531,6 +539,9 @@ static void oedit_disp_val3_menu(struct descriptor_data *d)
   case ITEM_DRINKCON:
   case ITEM_FOUNTAIN:
     oedit_liquid_type(d);
+    break;
+  case ITEM_BOARD:
+    write_to_output(d, "Minimum level to remove messages: ");
     break;
   default:
     oedit_disp_menu(d);
@@ -715,17 +726,32 @@ void oedit_parse(struct descriptor_data *d, char *arg)
   case OEDIT_CONFIRM_SAVESTRING:
     switch (*arg) {
     case 'y':
-    case 'Y':
-      oedit_save_internally(d);
-      mudlog(CMP, MAX(LVL_BUILDER, GET_INVIS_LEV(d->character)), TRUE,
-              "OLC: %s edits obj %d", GET_NAME(d->character), OLC_NUM(d));
-      if (CONFIG_OLC_SAVE) {
-        oedit_save_to_disk(real_zone_by_thing(OLC_NUM(d)));
-        write_to_output(d, "Object saved to disk.\r\n");
-      } else
-        write_to_output(d, "Object saved to memory.\r\n");
-      cleanup_olc(d, CLEANUP_ALL);
-      return;
+  case 'Y':
+    oedit_save_internally(d);
+    mudlog(CMP, MAX(LVL_BUILDER, GET_INVIS_LEV(d->character)), TRUE,
+            "OLC: %s edits obj %d", GET_NAME(d->character), OLC_NUM(d));
+
+    /* 🟢 Här lägger du in board-logiken: */
+    if (GET_OBJ_TYPE(OLC_OBJ(d)) == ITEM_BOARD) {
+      struct board_info *tmp;
+      if ((tmp = locate_board(GET_OBJ_VNUM(OLC_OBJ(d)))) != NULL) {
+        save_board(tmp);
+      } else {
+        tmp = create_new_board(GET_OBJ_VNUM(OLC_OBJ(d)));
+        tmp->next = bboards;
+        bboards = tmp;
+      }
+    }
+
+    if (CONFIG_OLC_SAVE) {
+      oedit_save_to_disk(real_zone_by_thing(OLC_NUM(d)));
+      write_to_output(d, "Object saved to disk.\r\n");
+    } else {
+      write_to_output(d, "Object saved to memory.\r\n");
+    }
+
+    cleanup_olc(d, CLEANUP_ALL);
+    return;
     case 'n':
     case 'N':
       /* If not saving, we must free the script_proto list. */

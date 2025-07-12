@@ -362,7 +362,7 @@ int main(int argc, char **argv)
     free_player_index();    /* players.c */
     free_messages();        /* fight.c */
     free_text_files();      /* db.c */
-    board_clear_all();      /* boards.c */
+    clear_boards();      /* boards.c */
     free(cmd_sort_info);    /* act.informative.c */
     free_command_list();    /* act.informative.c */
     free_social_messages(); /* act.social.c */

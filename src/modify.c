@@ -186,6 +186,9 @@ void string_add(struct descriptor_data *d, char *str)
           d->backstr = NULL;
           d->str     = NULL;
           break;
+        case CON_PLAYING:
+          /* all CON_PLAYING are handled below in playing_string_cleanup */
+          break;
         default:
           log("SYSERR: string_add: Aborting write from unknown origin.");
           break;
@@ -244,29 +247,68 @@ void string_add(struct descriptor_data *d, char *str)
      strcat(*d->str, "\r\n");
 }
 
-static void playing_string_cleanup(struct descriptor_data *d, int action)
+void playing_string_cleanup(struct descriptor_data *d, int action)
 {
+  struct board_info *board;
+  struct board_msg *fore, *cur, *aft;
+
   if (PLR_FLAGGED(d->character, PLR_MAILING)) {
     if (action == STRINGADD_SAVE && *d->str) {
       store_mail(d->mail_to, GET_IDNUM(d->character), *d->str);
       write_to_output(d, "Message sent!\r\n");
       notify_if_playing(d->character, d->mail_to);
-    } else
+    } else {
       write_to_output(d, "Mail aborted.\r\n");
-    
-    free(*d->str);
-    free(d->str);
+      free(*d->str);
+      free(d->str);
+    }
   }
 
-/* We have no way of knowing which slot the post was sent to so we can only
- * give the message.   */
-  if (d->mail_to >= BOARD_MAGIC) {
-    board_save_board(d->mail_to - BOARD_MAGIC);
-    if (action == STRINGADD_ABORT)
-      write_to_output(d, "Post not aborted, use REMOVE <post #>.\r\n");
+  if (PLR_FLAGGED(d->character, PLR_WRITING)) {
+    if (d->mail_to >= BOARD_MAGIC) {
+      if (action == STRINGADD_ABORT) {
+        board = locate_board(d->mail_to - BOARD_MAGIC);
+        fore = cur = aft = NULL;
+
+        for (cur = BOARD_MESSAGES(board); cur; cur = aft) {
+          aft = MESG_NEXT(cur);
+          if (cur->data == *d->str) {
+            if (BOARD_MESSAGES(board) == cur) {
+              if (MESG_NEXT(cur))
+                BOARD_MESSAGES(board) = MESG_NEXT(cur);
+              else
+                BOARD_MESSAGES(board) = NULL;
+            }
+            if (fore)
+              MESG_NEXT(fore) = aft;
+            if (aft)
+              MESG_PREV(aft) = fore;
+
+            free(cur->subject);
+            free(cur->data);
+            free(cur);
+            BOARD_MNUM(board)--;
+
+            write_to_output(d, "Post aborted.\r\n");
+            d->connected = CON_PLAYING;
+            return;
+          }
+          fore = cur;
+        }
+        write_to_output(d, "Unable to find your message to delete it!\r\n");
+        d->connected = CON_PLAYING;
+      } else {
+        write_to_output(d, "\r\nPost saved.\r\n");
+        save_board(locate_board(d->mail_to - BOARD_MAGIC));
+        d->connected = CON_PLAYING;
+        return;
+      }
+    }
+    /* else: you were writing but not to a board? Should never happen */
   }
+
   if (PLR_FLAGGED(d->character, PLR_IDEA)) {
-    if (action == STRINGADD_SAVE && *d->str){
+    if (action == STRINGADD_SAVE && *d->str) {
       write_to_output(d, "Idea saved!\r\n");
       save_ibt_file(SCMD_IDEA);
     } else {
@@ -274,8 +316,9 @@ static void playing_string_cleanup(struct descriptor_data *d, int action)
       clean_ibt_list(SCMD_IDEA);
     }
   }
+
   if (PLR_FLAGGED(d->character, PLR_BUG)) {
-    if (action == STRINGADD_SAVE && *d->str){
+    if (action == STRINGADD_SAVE && *d->str) {
       write_to_output(d, "Bug saved!\r\n");
       save_ibt_file(SCMD_BUG);
     } else {
@@ -283,8 +326,9 @@ static void playing_string_cleanup(struct descriptor_data *d, int action)
       clean_ibt_list(SCMD_BUG);
     }
   }
+
   if (PLR_FLAGGED(d->character, PLR_TYPO)) {
-    if (action == STRINGADD_SAVE && *d->str){
+    if (action == STRINGADD_SAVE && *d->str) {
       write_to_output(d, "Typo saved!\r\n");
       save_ibt_file(SCMD_TYPO);
     } else {
@@ -293,6 +337,7 @@ static void playing_string_cleanup(struct descriptor_data *d, int action)
     }
   }
 }
+
 
 static void exdesc_string_cleanup(struct descriptor_data *d, int action)
 {

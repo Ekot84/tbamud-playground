@@ -22,6 +22,7 @@
 #include "oasis.h"
 #include "act.h"
 #include "quest.h"
+#include "boards.h"
 
 
 /* local function prototypes */
@@ -1480,8 +1481,9 @@ static void perform_remove(struct char_data *ch, int pos)
 
 ACMD(do_remove)
 {
+  struct obj_data *obj;
   char arg[MAX_INPUT_LENGTH];
-  int i, dotmode, found;
+  int i, dotmode, found = 0, msg;
 
   one_argument(argument, arg);
 
@@ -1489,38 +1491,72 @@ ACMD(do_remove)
     send_to_char(ch, "Remove what?\r\n");
     return;
   }
+
+  /* Check for a board first */
+  for (obj = ch->carrying; obj; obj = obj->next_content) {
+    if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+      found = 1;
+      break;
+    }
+  }
+
+  if (!obj) {
+    for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+      if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+        found = 1;
+        break;
+      }
+    }
+  }
+
+  if (found) {
+    if (!isdigit(*arg) || (!(msg = atoi(arg)))) {
+      send_to_char(ch, "You must specify the number of the message to remove.\r\n");
+    } else {
+      remove_board_msg(GET_OBJ_VNUM(obj), ch, msg);
+    }
+    return;
+  }
+
+  /* No board found, fall back to standard remove */
   dotmode = find_all_dots(arg);
 
   if (dotmode == FIND_ALL) {
     found = 0;
-    for (i = 0; i < NUM_WEARS; i++)
+    for (i = 0; i < NUM_WEARS; i++) {
       if (GET_EQ(ch, i)) {
-	perform_remove(ch, i);
-	found = 1;
+        perform_remove(ch, i);
+        found = 1;
       }
-    if (!found)
+    }
+    if (!found) {
       send_to_char(ch, "You're not using anything.\r\n");
+    }
   } else if (dotmode == FIND_ALLDOT) {
-    if (!*arg)
+    if (!*arg) {
       send_to_char(ch, "Remove all of what?\r\n");
-    else {
+    } else {
       found = 0;
-      for (i = 0; i < NUM_WEARS; i++)
-	if (GET_EQ(ch, i) && CAN_SEE_OBJ(ch, GET_EQ(ch, i)) &&
-	    isname(arg, GET_EQ(ch, i)->name)) {
-	  perform_remove(ch, i);
-	  found = 1;
-	}
-      if (!found)
-	send_to_char(ch, "You don't seem to be using any %ss.\r\n", arg);
+      for (i = 0; i < NUM_WEARS; i++) {
+        if (GET_EQ(ch, i) && CAN_SEE_OBJ(ch, GET_EQ(ch, i)) &&
+            isname(arg, GET_EQ(ch, i)->name)) {
+          perform_remove(ch, i);
+          found = 1;
+        }
+      }
+      if (!found) {
+        send_to_char(ch, "You don't seem to be using any %ss.\r\n", arg);
+      }
     }
   } else {
-    if ((i = get_obj_pos_in_equip_vis(ch, arg, NULL, ch->equipment)) < 0)
+    if ((i = get_obj_pos_in_equip_vis(ch, arg, NULL, ch->equipment)) < 0) {
       send_to_char(ch, "You don't seem to be using %s %s.\r\n", AN(arg), arg);
-    else
+    } else {
       perform_remove(ch, i);
+    }
   }
 }
+
 
 ACMD(do_sac)
 {

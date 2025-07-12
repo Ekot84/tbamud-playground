@@ -310,9 +310,10 @@
 #define PRF_AUTODOOR     33   /**< Use the next available door */
 #define PRF_ZONERESETS   34
 #define PRF_SHOW_DAMAGE_NUMBERS 35 /**< Show damage numbers in combat */
+#define PRF_VIEWORDER   36 /**< Show view order of boards */
 
 /** Total number of available PRF flags */
-#define NUM_PRF_FLAGS    36
+#define NUM_PRF_FLAGS    37
 
 /* Affect bits: used in char_data.char_specials.saved.affected_by */
 /* WARNING: In the world files, NEVER set the bits marked "R" ("Reserved") */
@@ -393,6 +394,7 @@
 #define CON_ACCOUNT_CHANGEPASS_OLD    43
 #define CON_ACCOUNT_CHANGEPASS_NEW    44
 #define CON_ACCOUNT_CHANGEPASS_CONFIRM 45
+#define CON_BOARD_WRITE 46 /**< Writing a board message */
 
 /* OLC States range - used by IS_IN_OLC and IS_PLAYING */
 #define FIRST_OLC_STATE CON_OEDIT     /**< The first CON_ state that is an OLC */
@@ -450,8 +452,9 @@
 #define ITEM_PEN       21		/**< Item is a pen		*/
 #define ITEM_BOAT      22		/**< Item is a boat		*/
 #define ITEM_FOUNTAIN  23		/**< Item is a fountain		*/
+#define ITEM_BOARD   24		/**< Item is a board		*/
 /** Total number of item types.*/
-#define NUM_ITEM_TYPES    24
+#define NUM_ITEM_TYPES    25
 
 /* Take/Wear flags: used by obj_data.obj_flags.wear_flags */
 #define ITEM_WEAR_TAKE      0   /**< Item can be taken */
@@ -537,6 +540,7 @@
 /* Respec price per level for SPELLS & SKILLS */
 #define RESPEC_COST_PER_LEVEL 5000 /**< Cost to respec per level */
 #define RESPEC_SINGLE_ABILITY_COST_PER_LEVEL 50 /**< Cost to respec a single ability per level */
+
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/

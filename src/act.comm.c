@@ -21,6 +21,7 @@
 #include "dg_scripts.h"
 #include "act.h"
 #include "modify.h"
+#include "boards.h"
 
 static bool legal_communication(char * arg);
 
@@ -279,9 +280,32 @@ ACMD(do_spec_comm)
 
 ACMD(do_write)
 {
-  struct obj_data *paper, *pen = NULL;
+  struct obj_data *paper, *pen = NULL, *obj;
   char *papername, *penname;
   char buf1[MAX_STRING_LENGTH], buf2[MAX_STRING_LENGTH];
+  extern struct index_data *obj_index;
+
+  /* Before we do anything, see if there's a board involved */
+  for (obj = ch->carrying; obj; obj = obj->next_content) {
+  if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+    break;
+    }
+  }
+
+  if (!obj) {
+    for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+      if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+        break;
+      }
+    }
+  }
+
+  if (obj) {
+    write_board_message(GET_OBJ_VNUM(obj), ch, argument);
+    act("$n begins to write a note on $p.", TRUE, ch, obj, 0, TO_ROOM);
+    return;
+  }
+
 
   papername = buf1;
   penname = buf2;
@@ -572,5 +596,55 @@ ACMD(do_qcomm)
     for (i = descriptor_list; i; i = i->next)
       if (STATE(i) == CON_PLAYING && i != ch->desc && PRF_FLAGGED(i->character, PRF_QUEST))
         act(buf, 0, ch, 0, i->character, TO_VICT | TO_SLEEP);
+  }
+}
+
+ACMD(do_respond) {
+  int found = 0, mnum = 0;
+  struct obj_data *obj;
+  char number[MAX_INPUT_LENGTH];
+
+  if (IS_NPC(ch)) {
+    send_to_char(ch, "As a mob, you never bothered to learn to read or write.\r\n");
+    return;
+  }
+
+  /* Check carried boards first */
+  for (obj = ch->carrying; obj; obj = obj->next_content) {
+    if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+      found = 1;
+      break;
+    }
+  }
+
+  /* Then check room */
+  if (!obj) {
+    for (obj = world[IN_ROOM(ch)].contents; obj; obj = obj->next_content) {
+      if (GET_OBJ_TYPE(obj) == ITEM_BOARD) {
+        found = 1;
+        break;
+      }
+    }
+  }
+
+  if (obj) {
+    argument = one_argument(argument, number);
+
+    if (!*number) {
+      send_to_char(ch, "Respond to which message?\r\n");
+      return;
+    }
+    if (!isdigit(*number) || (!(mnum = atoi(number)))) {
+      send_to_char(ch, "You must type the number of the message you wish to reply to.\r\n");
+      return;
+    }
+
+    board_respond(GET_OBJ_VNUM(obj), ch, mnum);
+    return;
+  }
+
+  /* No board found */
+  if (!found) {
+    send_to_char(ch, "Sorry, you may only reply to messages posted on a board.\r\n");
   }
 }
