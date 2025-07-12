@@ -415,6 +415,33 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     to_vict = "You float above the ground.";
     break;
 
+  case SPELL_HEALING_MYST:
+    af[0].location = APPLY_AC;
+    af[0].modifier = 10;
+    af[0].duration = MAX(1, (level/10));
+   accum_duration = FALSE;
+   to_vict = "\tCYou are surrounded by a \tBblue\tC myst.\tn\r\n";
+   to_room = "\tC$n is surrounded by a pulsing \tBblue\\tC myst.\tn";
+   break;
+
+  case SPELL_ARCANE_MYST:
+    af[0].location = APPLY_AC;
+    af[0].modifier = 10;
+    af[0].duration = MAX(1, (level/10));
+   accum_duration = FALSE;
+   to_vict = "\tCYou are surrounded by a \tMpurple\tC myst.\tn\r\n";
+   to_room = "\tC$n is surrounded by a pulsing \tMPurple\tC myst.\tn";
+   break;
+
+  case SPELL_ENDURANCE_MYST:
+    af[0].location = APPLY_AC;
+    af[0].modifier = 10;
+    af[0].duration = MAX(1, (level/10));
+   accum_duration = FALSE;
+   to_vict = "\tCYou are surrounded by a \tyamber\tC myst.\tn\r\n";
+   to_room = "\tC$n is surrounded by a pulsing \tyamber\tC myst.\tn";
+   break;
+
   case SPELL_INFRAVISION:
     af[0].duration = 12 + level;
     SET_BIT_AR(af[0].bitvector, AFF_INFRAVISION);
@@ -428,7 +455,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
       victim = ch;
 
     af[0].duration = 12 + (GET_LEVEL(ch) / 4);
-    af[0].modifier = -40;
+    af[0].modifier = 40;
     af[0].location = APPLY_AC;
     SET_BIT_AR(af[0].bitvector, AFF_INVISIBLE);
     accum_duration = TRUE;
@@ -456,6 +483,13 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     accum_duration = TRUE;
     to_vict = "You feel invulnerable!";
     break;
+
+  case SPELL_REGEN:
+    af[0].duration = 1 + (level/25);
+    SET_BIT_AR(af[0].bitvector, AFF_REGEN);
+    accum_duration = FALSE;
+    to_vict = "\tBYour wounds begin to heal much more rapidly.\tn\r\n";
+    break;      
 
   case SPELL_SANCTUARY:
     af[0].duration = 4;

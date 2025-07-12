@@ -91,8 +91,9 @@
 #define ROOM_POISON        18 /**< Room is poisonous, causes damage over time */
 #define ROOM_MOVE_DRAIN    19 /**< Room drains movement points */
 #define ROOM_NO_RECALL     20 /**< Room does not allow recall spells */
+#define ROOM_FASTREGEN     21 /**< Room regenerates health/mana/stamina faster than normal */
 /** The total number of Room Flags */
-#define NUM_ROOM_FLAGS     21
+#define NUM_ROOM_FLAGS     22
 
 /* Zone info: Used in zone_data.zone_flags */
 #define ZONE_CLOSED       0  /**< Zone is closed - players cannot enter */
@@ -341,8 +342,9 @@
 #define AFF_HEALTH_REGEN   23   /**< Char regenerates health */
 #define AFF_MANA_REGEN     24   /**< Char regenerates mana */
 #define AFF_STAMINA_REGEN  25   /**< Char regenerates stamina */
+#define AFF_REGEN          26   /**< Char regenerates health, mana and stamina */
 /** Total number of affect flags */
-#define NUM_AFF_FLAGS      26
+#define NUM_AFF_FLAGS      27
 
 /* Modes of connectedness: used by descriptor_data.state 		*/
 #define CON_PLAYING       0 /**< Playing - Nominal state 		*/
@@ -522,8 +524,11 @@
 #define APPLY_CRITICAL_DAMAGE      23	/**< Apply to critical hit damage	*/
 #define APPLY_EXP_PERCENTAGE       24	/**< Apply to exp percentage gain	*/
 #define APPLY_LUCK                 25	/**< Apply to luck			*/
+#define APPLY_HIT_REGEN         26	/**< Apply to hit point regeneration	*/
+#define APPLY_MANA_REGEN        27	/**< Apply to mana point regeneration	*/
+#define APPLY_MOVE_REGEN     28	/**< Apply to stamina point regeneration	*/
 /** Total number of applies */
-#define NUM_APPLIES   26
+#define NUM_APPLIES   29
 
 /* Level related defines */
 #define LEVEL_EXP_MULTIPLIER 0.09 /**< Multiplier for exp per level */
@@ -577,7 +582,7 @@
 #define POTION_ELEMENTAL_RESISTANCE 15 /**< Potion type Elemental Resistance */
 #define POTION_MAGIC_RESISTANCE   16 /**< Potion type Magic Resistance */
 #define POTION_REGENERATION       17 /**< Potion type Regeneration */
-#define POTION_STAMINA_REGENERATION 18 /**< Potion type Stamina Regeneration */
+#define POTION_MOVE_REGENERATION 18 /**< Potion type Stamina Regeneration */
 #define POTION_MANA_REGENERATION  19 /**< Potion type Mana Regeneration */
 #define POTION_HEALTH_REGENERATION 20 /**< Potion type Health Regeneration */
 #define POTION_AC                21 /**< Potion type Armor Class */
@@ -1038,6 +1043,9 @@ struct char_special_data
   int carry_weight; /**< Carried weight */
   byte carry_items; /**< Number of items carried */
   int timer;        /**< Timer for update */
+  int hitgain;     /**< Hit point gain per heartbeat */
+  int managain;    /**< Mana point gain per heartbeat */
+  int movegain;    /**< Stamina point gain per heartbeat */
 
   struct char_special_data_saved saved; /**< Constants saved for PCs. */
 };

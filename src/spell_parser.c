@@ -861,6 +861,9 @@ void mag_assign_spells(void) {
   TAR_CHAR_ROOM | TAR_SELF_ONLY, FALSE, MAG_AFFECTS,
       "You feel less protected.");
 
+  spello(SPELL_REGEN, "regen", 250, 125, 10, 1, POS_STANDING,
+	TAR_CHAR_ROOM, FALSE, MAG_AFFECTS, NULL);
+
   spello(SPELL_REMOVE_CURSE, "remove curse", 45, 25, 5, 1, POS_STANDING,
   TAR_CHAR_ROOM | TAR_OBJ_INV | TAR_OBJ_EQUIP, FALSE,
   MAG_UNAFFECTS | MAG_ALTER_OBJS, NULL);

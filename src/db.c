@@ -3680,7 +3680,10 @@ void reset_char(struct char_data *ch)
   ch->mob_specials.default_pos = POS_STANDING;
   ch->char_specials.carry_weight = 0;
   ch->char_specials.carry_items = 0;
-
+  ch->char_specials.hitgain = 0;
+  ch->char_specials.managain = 0;
+  ch->char_specials.movegain = 0;
+  
   if (GET_HIT(ch) <= 0)
     GET_HIT(ch) = 1;
   if (GET_MOVE(ch) <= 0)

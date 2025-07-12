@@ -87,6 +87,7 @@ const char *room_bits[] = {
   "POISON",         /* Room is poisonous, causes damage over time */
   "MOVE_DRAIN",    /* Room drains movement points */
   "NO_RECALL",      /* Room does not allow recall spells */
+  "FASTREGEN",    /* Room regenerates health/mana/stamina faster */
   "\n"
 };
 
@@ -325,6 +326,7 @@ const char *affected_bits[] =
   "HEALTH_REGEN",     /* Char regenerates health */
   "MANA_REGEN",       /* Char regenerates mana */
   "STAMINA_REGEN",    /* Char regenerates stamina */
+  "REGEN",            /* Char regenerates health, mana and stamina */
   "\n"
 };
 
@@ -530,6 +532,9 @@ const char *apply_types[] = {
   "CRITICAL_DAMAGE",
   "EXP_PERCENTAGE",
   "LUCK",
+  "HIT_REGEN",
+  "MANA_REGEN",
+  "MOVE_REGEN",
   "\n"
 };
 

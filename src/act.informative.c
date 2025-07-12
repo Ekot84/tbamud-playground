@@ -344,6 +344,12 @@ static void list_one_char(struct char_data *i, struct char_data *ch)
       act("...$e glows with a bright light!", FALSE, i, 0, ch, TO_VICT);
     if (AFF_FLAGGED(i, AFF_BLIND) && GET_LEVEL(i) < LVL_IMMORT)
       act("...$e is groping around blindly!", FALSE, i, 0, ch, TO_VICT);
+    if (affected_by_spell (i, SPELL_HEALING_MYST))
+      act("\tB...$e \tBis engulfed in a deep blue myst!\tn ", FALSE, i, 0, ch, TO_VICT);
+    if (affected_by_spell (i, SPELL_ARCANE_MYST))
+      act("\tM...$e \tMis engulfed in a deep purple myst!\tn ", FALSE, i, 0, ch, TO_VICT);
+    if (affected_by_spell (i, SPELL_ENDURANCE_MYST))
+      act("\tC...$e \tCis engulfed in a deep amber myst!\tn ", FALSE, i, 0, ch, TO_VICT);
 
     return;
   }
@@ -402,6 +408,12 @@ static void list_one_char(struct char_data *i, struct char_data *ch)
 
   if (AFF_FLAGGED(i, AFF_SANCTUARY))
     act("...$e glows with a bright light!", FALSE, i, 0, ch, TO_VICT);
+  if (affected_by_spell (i, SPELL_HEALING_MYST))
+    act("\tB...$e \tBis engulfed in a deep blue myst!\tn ", FALSE, i, 0, ch, TO_VICT);
+  if (affected_by_spell (i, SPELL_ARCANE_MYST))
+    act("\tM...$e \tMis engulfed in a deep purple myst!\tn ", FALSE, i, 0, ch, TO_VICT);
+  if (affected_by_spell (i, SPELL_ENDURANCE_MYST))
+    act("\tC...$e \tCis engulfed in a deep amber myst!\tn ", FALSE, i, 0, ch, TO_VICT);
 }
 
 static void list_char_to_char(struct char_data *list, struct char_data *ch)

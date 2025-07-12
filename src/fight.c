@@ -1150,6 +1150,33 @@ void perform_violence(void)
       }
     }
 
+    if(affected_by_spell(ch, SPELL_HEALING_MYST) && AWAKE(ch)) {
+        if(GET_HIT(ch)<GET_MAX_HIT(ch)) {
+           act("\tBThe myst surrounding your body pulses blue, infusing you with energy!\tn\r\n", 
+                FALSE, ch, 0, 0, TO_CHAR);
+            GET_HIT(ch)+=rand_number(1,10);
+            GET_HIT(ch)=MIN(GET_HIT(ch),GET_MAX_HIT(ch));
+          }
+      }
+
+    if(affected_by_spell(ch, SPELL_ARCANE_MYST) && AWAKE(ch)) {
+        if(GET_HIT(ch)<GET_MAX_HIT(ch)) {
+           act("\tMThe myst surrounding your body pulses blue, infusing you with energy!\tn\r\n", 
+                FALSE, ch, 0, 0, TO_CHAR);
+            GET_MANA(ch)+=rand_number(1,10);
+            GET_MANA(ch)=MIN(GET_MANA(ch),GET_MAX_MANA(ch));
+          }
+      }
+
+    if(affected_by_spell(ch, SPELL_ENDURANCE_MYST) && AWAKE(ch)) {
+        if(GET_HIT(ch)<GET_MAX_HIT(ch)) {
+           act("\tyThe myst surrounding your body pulses blue, infusing you with energy!\tn\r\n", 
+                FALSE, ch, 0, 0, TO_CHAR);
+            GET_MOVE(ch)+=rand_number(1,10);
+            GET_MOVE(ch)=MIN(GET_MOVE(ch),GET_MAX_MOVE(ch));
+          }
+      }
+
     hit(ch, FIGHTING(ch), TYPE_UNDEFINED);
     if (MOB_FLAGGED(ch, MOB_SPEC) && GET_MOB_SPEC(ch) && !MOB_FLAGGED(ch, MOB_NOTDEADYET)) {
       char actbuf[MAX_INPUT_LENGTH] = "";

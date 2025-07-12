@@ -69,6 +69,8 @@ int mana_gain(struct char_data *ch)
   } else {
     gain = graf(age(ch)->year, 4, 8, 12, 16, 12, 10, 8);
 
+    /* Item calculations */
+    gain = gain + ch->char_specials.managain;
     /* Class calculations */
 
     /* Skill/Spell calculations */
@@ -85,6 +87,12 @@ int mana_gain(struct char_data *ch)
       gain += (gain / 4);	/* Divide by 4 */
       break;
     }
+
+    if (IS_AFFECTED(ch, AFF_REGEN))
+      gain *= 1;
+
+    if (IS_SET_AR(ROOM_FLAGS(ch->in_room), ROOM_FASTREGEN)) 
+      gain *= 1; 
 
     if (IS_MAGIC_USER(ch) || IS_CLERIC(ch))
       gain *= 2;
@@ -111,6 +119,8 @@ int hit_gain(struct char_data *ch)
 
     gain = graf(age(ch)->year, 8, 12, 20, 32, 16, 10, 4);
 
+    /* Item calculations */
+    gain = gain + ch->char_specials.hitgain;
     /* Class/Level calculations */
     /* Skill/Spell calculations */
     /* Position calculations    */
@@ -126,6 +136,12 @@ int hit_gain(struct char_data *ch)
       gain += (gain / 8);	/* Divide by 8 */
       break;
     }
+
+    if (IS_AFFECTED(ch, AFF_REGEN))
+    gain *= 1;
+      
+    if (IS_SET_AR(ROOM_FLAGS(ch->in_room), ROOM_FASTREGEN)) 
+    gain *= 1;
 
     if (IS_MAGIC_USER(ch) || IS_CLERIC(ch))
       gain /= 2;	/* Ouch. */
@@ -151,6 +167,8 @@ int move_gain(struct char_data *ch)
   } else {
     gain = graf(age(ch)->year, 16, 20, 24, 20, 16, 12, 10);
 
+    /* Item calculations */
+    gain = gain + ch->char_specials.movegain;
     /* Class/Level calculations */
     /* Skill/Spell calculations */
     /* Position calculations    */
@@ -165,6 +183,12 @@ int move_gain(struct char_data *ch)
       gain += (gain / 8);	/* Divide by 8 */
       break;
     }
+
+     if (IS_AFFECTED(ch, AFF_REGEN))
+    gain *= 1;
+      
+    if (IS_SET_AR(ROOM_FLAGS(ch->in_room), ROOM_FASTREGEN)) 
+    gain *= 1;   
 
     if ((GET_COND(ch, HUNGER) == 0) || (GET_COND(ch, THIRST) == 0))
       gain /= 4;

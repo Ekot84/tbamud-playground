@@ -93,8 +93,12 @@
 #define SPELL_IDENTIFY               52 /* Reserved Skill[] DO NOT CHANGE */
 #define SPELL_FLY                    53 /* Reserved Skill[] DO NOT CHANGE */
 #define SPELL_DARKNESS               54
+#define SPELL_HEALING_MYST           55 /* Healing per combat tick */
+#define SPELL_ARCANE_MYST            56 /* Mana per combat tick */
+#define SPELL_ENDURANCE_MYST         57 /* Stamina per combat tick */
+#define SPELL_REGEN                  58 /* Regeneration of health, mana and stamina per tick */
 /** Total Number of defined spells */
-#define NUM_SPELLS                   54
+#define NUM_SPELLS                   58
 
 /* Insert new spells here, up to MAX_SPELLS */
 #define MAX_SPELLS		    130
