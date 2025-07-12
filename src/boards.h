@@ -17,13 +17,14 @@
 
 /* Message on the board */
 struct board_msg {
-  long poster;
-  time_t timestamp;
-  char *subject;
-  char *data;
-  struct board_msg *next;
-  struct board_msg *prev;
-  char *name;
+  long poster;                 /* ID of the poster (old format) */
+  time_t timestamp;            /* When the message was posted */
+  char *subject;               /* Subject line */
+  char *data;                  /* Message text */
+  struct board_msg *next;      /* Next message in the list */
+  struct board_msg *prev;      /* Previous message in the list */
+  char *name;                  /* Name of the poster (new format) */
+  time_t reply_to;             /* Timestamp of the message this replies to, 0 if none */
 };
 
 /* Per-player memory to track read messages */
@@ -65,6 +66,7 @@ struct board_info {
 #define MESG_NEXT(i)          ((i)->next)
 #define MESG_PREV(i)          ((i)->prev)
 #define MESG_POSTER_NAME(i)   ((i)->name)
+#define MESG_REPLY_TO(i)      ((i)->reply_to)
 
 #define MEMORY_TIMESTAMP(i)   ((i)->timestamp)
 #define MEMORY_READER(i)      ((i)->reader)

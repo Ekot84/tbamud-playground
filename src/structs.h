@@ -310,10 +310,9 @@
 #define PRF_AUTODOOR     33   /**< Use the next available door */
 #define PRF_ZONERESETS   34
 #define PRF_SHOW_DAMAGE_NUMBERS 35 /**< Show damage numbers in combat */
-#define PRF_VIEWORDER   36 /**< Show view order of boards */
 
 /** Total number of available PRF flags */
-#define NUM_PRF_FLAGS    37
+#define NUM_PRF_FLAGS    36
 
 /* Affect bits: used in char_data.char_specials.saved.affected_by */
 /* WARNING: In the world files, NEVER set the bits marked "R" ("Reserved") */

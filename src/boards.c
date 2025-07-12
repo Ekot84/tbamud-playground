@@ -464,25 +464,39 @@ void show_board(obj_vnum board_vnum, struct char_data *ch) {
            "\tnThis is a bulletin board.\r\n"
            "\tnUsage: \tnREAD/REMOVE \tW<messg #>\tn, \tnRESPOND \tW<messg #>\tn, \tnWRITE \tW<header>\tn.\r\n");
 
-  if (!BOARD_MNUM(thisboard) || !BOARD_MESSAGES(thisboard)) {
+  /* Count only original messages (not replies) */
+  int visible_count = 0;
+  struct board_msg *m2;
+  for (m2 = BOARD_MESSAGES(thisboard); m2; m2 = MESG_NEXT(m2)) {
+    if (MESG_REPLY_TO(m2) == 0)
+      visible_count++;
+  }
+
+  if (visible_count == 0) {
     strcat(buf, "The board is empty.\r\n");
     send_to_char(ch, "%s", buf);
     return;
   } else {
     snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
              "\tnThere \tn%s \tW%d\tn %s on the board.\r\n",
-             (BOARD_MNUM(thisboard) == 1) ? "is" : "are",
-             BOARD_MNUM(thisboard),
-             (BOARD_MNUM(thisboard) == 1) ? "message" : "messages");
+             (visible_count == 1) ? "is" : "are",
+             visible_count,
+             (visible_count == 1) ? "message" : "messages");
   }
 
+  /* Start at last message (newest) */
   message = BOARD_MESSAGES(thisboard);
-  if (PRF_FLAGGED(ch, PRF_VIEWORDER)) {
+  if (message) {
     while (MESG_NEXT(message))
       message = MESG_NEXT(message);
   }
 
   while (message) {
+    if (MESG_REPLY_TO(message)) {
+      message = MESG_PREV(message);
+      continue;
+    }
+
     tmstr = (char *)asctime(localtime(&MESG_TIMESTAMP(message)));
     *(tmstr + strlen(tmstr) - 1) = '\0';
     yesno = mesglookup(message, ch, thisboard);
@@ -492,43 +506,43 @@ void show_board(obj_vnum board_vnum, struct char_data *ch) {
     else
       snprintf(name, sizeof(name), "%s", MESG_POSTER_NAME(message));
 
+    /* Count responses to this message */
+    int response_count = 0;
+    struct board_msg *r;
+    for (r = BOARD_MESSAGES(thisboard); r; r = MESG_NEXT(r)) {
+      if (MESG_REPLY_TO(r) == MESG_TIMESTAMP(message))
+        response_count++;
+    }
+
     snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-             "\tn[\tW%3s\tn] \tn(\tW%2d\tn) \tn: \tW%6.10s \tn(\tW%-10s\tn) \tn:: \tW%s\tn\r\n",
-             yesno ? "---" : "\tYNEW\tn",
+             "\tn[%s] [%d] (\tW%2d\tn) \tn: \tW%6.10s \tn(\tW%-10s\tn) \tn:: \tW%s\tn\r\n",
+             yesno ? "---" : "NEW",
+             response_count,
              ++msgcount,
              tmstr,
              CAP(name),
              MESG_SUBJECT(message) ? MESG_SUBJECT(message) : "No Subject");
 
-    if (PRF_FLAGGED(ch, PRF_VIEWORDER))
-      message = MESG_PREV(message);
-    else
-      message = MESG_NEXT(message);
+    message = MESG_PREV(message);
   }
 
   page_string(ch->desc, buf, 1);
 }
 
-
 /* Display a specific message */
 void board_display_msg(obj_vnum board_vnum, struct char_data *ch, int arg) {
-  struct board_info *thisboard = bboards;
+  struct board_info *thisboard;
   struct board_msg *message;
   char *tmstr;
-  int msgcount, mem, sflag;
+  int mem, sflag;
   char name[127];
-  struct board_memory *mboard_type, *list;
-  char buf[MAX_STRING_LENGTH + 1];
-
-  if (IS_NPC(ch)) {
-    send_to_char(ch, "Silly mob - reading is for pcs!\r\n");
-    return;
-  }
+  char buf[MAX_STRING_LENGTH];
 
   thisboard = locate_board(board_vnum);
+
   if (!thisboard) {
-    log("Creating new board - board #%d", board_vnum);
-    thisboard = create_new_board(board_vnum);
+    send_to_char(ch, "This board doesn't exist.\r\n");
+    return;
   }
 
   if (GET_LEVEL(ch) < READ_LVL(thisboard)) {
@@ -536,28 +550,28 @@ void board_display_msg(obj_vnum board_vnum, struct char_data *ch, int arg) {
     return;
   }
 
-  if (!BOARD_MESSAGES(thisboard)) {
-    send_to_char(ch, "The board is empty!\r\n");
-    return;
-  }
-
-  message = BOARD_MESSAGES(thisboard);
-
   if (arg < 1) {
     send_to_char(ch, "You must specify the (positive) number of the message to be read!\r\n");
     return;
   }
 
-  if (PRF_FLAGGED(ch, PRF_VIEWORDER)) {
+  /* Start at last message */
+  message = BOARD_MESSAGES(thisboard);
+  if (message) {
     while (MESG_NEXT(message))
       message = MESG_NEXT(message);
   }
 
-  for (msgcount = arg; message && msgcount != 1; msgcount--) {
-    if (PRF_FLAGGED(ch, PRF_VIEWORDER))
-      message = MESG_PREV(message);
-    else
-      message = MESG_NEXT(message);
+  /* Find the Nth visible (non-reply) message */
+  int visible_count = 0;
+  while (message) {
+    if (MESG_REPLY_TO(message) == 0)
+      visible_count++;
+
+    if (visible_count == arg)
+      break;
+
+    message = MESG_PREV(message);
   }
 
   if (!message) {
@@ -565,41 +579,35 @@ void board_display_msg(obj_vnum board_vnum, struct char_data *ch, int arg) {
     return;
   }
 
-  if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
-    mem = ((MESG_TIMESTAMP(message) % 301) +
-           (MESG_POSTER(message) % 301)) % 301;
-  } else {
-    mem = ((MESG_TIMESTAMP(message) % 301) +
-           (get_id_by_name(MESG_POSTER_NAME(message)) % 301)) % 301;
-  }
+  /* Mark the message as read */
+  if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER)
+    mem = ((MESG_TIMESTAMP(message) % 301) + (MESG_POSTER(message) % 301)) % 301;
+  else
+    mem = ((MESG_TIMESTAMP(message) % 301) + (get_id_by_name(MESG_POSTER_NAME(message)) % 301)) % 301;
 
+  struct board_memory *mboard_type;
   CREATE(mboard_type, struct board_memory, 1);
-
-  if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
+  if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER)
     MEMORY_READER(mboard_type) = GET_IDNUM(ch);
-  } else {
-    MEMORY_READER_NAME(mboard_type) = GET_NAME(ch);
-  }
-
+  else
+    MEMORY_READER_NAME(mboard_type) = strdup(GET_NAME(ch));
   MEMORY_TIMESTAMP(mboard_type) = MESG_TIMESTAMP(message);
   MEMORY_NEXT(mboard_type) = NULL;
 
-  list = BOARD_MEMORY(thisboard, mem);
+  /* Check if already recorded */
+  struct board_memory *list = BOARD_MEMORY(thisboard, mem);
   sflag = 1;
-
   while (list && sflag) {
     if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
       if (MEMORY_READER(list) == MEMORY_READER(mboard_type) &&
-          MEMORY_TIMESTAMP(list) == MEMORY_TIMESTAMP(mboard_type)) {
+          MEMORY_TIMESTAMP(list) == MEMORY_TIMESTAMP(mboard_type))
         sflag = 0;
-      }
     } else {
       if (MEMORY_READER_NAME(list) &&
           MEMORY_READER_NAME(mboard_type) &&
           !strcmp(MEMORY_READER_NAME(list), MEMORY_READER_NAME(mboard_type)) &&
-          MEMORY_TIMESTAMP(list) == MEMORY_TIMESTAMP(mboard_type)) {
+          MEMORY_TIMESTAMP(list) == MEMORY_TIMESTAMP(mboard_type))
         sflag = 0;
-      }
     }
     list = MEMORY_NEXT(list);
   }
@@ -608,6 +616,10 @@ void board_display_msg(obj_vnum board_vnum, struct char_data *ch, int arg) {
     list = BOARD_MEMORY(thisboard, mem);
     BOARD_MEMORY(thisboard, mem) = mboard_type;
     MEMORY_NEXT(mboard_type) = list;
+  } else {
+    if (mboard_type) {
+      free(mboard_type);
+    }
   }
 
   tmstr = (char *)asctime(localtime(&MESG_TIMESTAMP(message)));
@@ -619,21 +631,33 @@ void board_display_msg(obj_vnum board_vnum, struct char_data *ch, int arg) {
     snprintf(name, sizeof(name), "%s", MESG_POSTER_NAME(message));
 
   snprintf(buf, sizeof(buf),
-          "\tnMessage \tW%d \tn: \tW%6.10s \tn(\tW%s\tn) \tn:: \tW%s\r\n\r\n%s\r\n\tn",
-          arg,
-          tmstr,
-          CAP(name),
-          MESG_SUBJECT(message) ? MESG_SUBJECT(message) : "\tWNo Subject\tn",
-          MESG_DATA(message) ? MESG_DATA(message) : "Looks like this message is empty.");
+           "\tnMessage \tW%d \tn: \tW%6.10s \tn(\tW%s\tn) \tn:: \tW%s\r\n\r\n%s\r\n\tn",
+           arg,
+           tmstr,
+           CAP(name),
+           MESG_SUBJECT(message) ? MESG_SUBJECT(message) : "\tWNo Subject\tn",
+           MESG_DATA(message) ? MESG_DATA(message) : "Looks like this message is empty.");
+
+  /* Append responses with full text */
+  struct board_msg *m2;
+  for (m2 = BOARD_MESSAGES(thisboard); m2; m2 = MESG_NEXT(m2)) {
+    if (MESG_REPLY_TO(m2) == MESG_TIMESTAMP(message)) {
+      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+               "\r\n-----------------------------\r\n"
+               "%s (%s)\r\n\r\n%s\r\n",
+               MESG_SUBJECT(m2) ? MESG_SUBJECT(m2) : "No Subject",
+               MESG_POSTER_NAME(m2) ? MESG_POSTER_NAME(m2) : "Unknown",
+               MESG_DATA(m2) ? MESG_DATA(m2) : "(empty response)");
+    }
+  }
 
   page_string(ch->desc, buf, 1);
 
   if (sflag) {
     save_board(thisboard);
   }
-
-  return;
 }
+
 
 
 /* Start writing a new message */
@@ -668,21 +692,29 @@ void write_board_message(obj_vnum board_vnum, struct char_data *ch, char *arg)
   arg[81] = '\0';
 
   CREATE(message, struct board_msg, 1);
-    if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
-      MESG_POSTER(message) = GET_IDNUM(ch);
-    } else {
-      MESG_POSTER_NAME(message) = strdup(GET_NAME(ch));
-    }
+  if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
+    MESG_POSTER(message) = GET_IDNUM(ch);
+  } else {
+    MESG_POSTER_NAME(message) = strdup(GET_NAME(ch));
+  }
   MESG_TIMESTAMP(message) = time(0);
   MESG_SUBJECT(message) = strdup(arg);
   MESG_DATA(message) = NULL;
-  MESG_NEXT(message) = BOARD_MESSAGES(thisboard);
+  MESG_NEXT(message) = NULL;
   MESG_PREV(message) = NULL;
+  message->reply_to = 0;
 
-  if (BOARD_MESSAGES(thisboard))
-    MESG_PREV(BOARD_MESSAGES(thisboard)) = message;
+  /* Append to end of list instead of putting first */
+  if (!BOARD_MESSAGES(thisboard)) {
+    BOARD_MESSAGES(thisboard) = message;
+  } else {
+    struct board_msg *last = BOARD_MESSAGES(thisboard);
+    while (MESG_NEXT(last))
+      last = MESG_NEXT(last);
+    MESG_NEXT(last) = message;
+    MESG_PREV(message) = last;
+  }
 
-  BOARD_MESSAGES(thisboard) = message;
   BOARD_MNUM(thisboard) = MAX(BOARD_MNUM(thisboard) + 1, 1);
 
   send_to_char(ch, "Write your message. (/s saves, /h for help)\r\n");
@@ -739,16 +771,22 @@ void board_respond(obj_vnum board_vnum, struct char_data *ch, int mnum) {
     MESG_POSTER_NAME(message) = strdup(GET_NAME(ch));
   }
   MESG_TIMESTAMP(message) = time(0);
+  MESG_REPLY_TO(message) = MESG_TIMESTAMP(other);
   snprintf(buf, sizeof(buf), "Re: %s", MESG_SUBJECT(other));
   MESG_SUBJECT(message) = strdup(buf);
   MESG_DATA(message) = NULL;
-  MESG_NEXT(message) = BOARD_MESSAGES(thisboard);
+  MESG_NEXT(message) = NULL;
   MESG_PREV(message) = NULL;
 
-  if (BOARD_MESSAGES(thisboard))
-    MESG_PREV(BOARD_MESSAGES(thisboard)) = message;
-
-  BOARD_MESSAGES(thisboard) = message;
+  if (!BOARD_MESSAGES(thisboard)) {
+    BOARD_MESSAGES(thisboard) = message;
+  } else {
+    struct board_msg *last = BOARD_MESSAGES(thisboard);
+    while (MESG_NEXT(last))
+      last = MESG_NEXT(last);
+    MESG_NEXT(last) = message;
+    MESG_PREV(message) = last;
+  }
   BOARD_MNUM(thisboard)++;
 
   send_to_char(ch, "Write your message. (/s saves, /h for help)\r\n\r\n");
@@ -765,7 +803,6 @@ void board_respond(obj_vnum board_vnum, struct char_data *ch, int mnum) {
 void remove_board_msg(obj_vnum board_vnum, struct char_data *ch, int msg_num) {
   struct board_info *b = locate_board(board_vnum);
   struct board_msg *msg;
-  int i = 1;
   char buf[MAX_STRING_LENGTH];
 
   if (IS_NPC(ch)) {
@@ -779,50 +816,63 @@ void remove_board_msg(obj_vnum board_vnum, struct char_data *ch, int msg_num) {
     return;
   }
 
-  /* Support PRF_VIEWORDER */
-  if (PRF_FLAGGED(ch, PRF_VIEWORDER))
-    msg_num = b->num_messages - msg_num + 1;
+  /* Start at last message */
+  msg = b->messages;
+  if (msg) {
+    while (msg->next)
+      msg = msg->next;
+  }
 
-  for (msg = b->messages; msg; msg = msg->next, i++) {
-    if (i == msg_num) {
-      if (GET_IDNUM(ch) != msg->poster && GET_LEVEL(ch) < REMOVE_LVL(b)) {
-        send_to_char(ch, "You are not allowed to remove other people's messages.\r\n");
-        return;
-      }
+  /* Count only non-replies backwards */
+  int visible_count = 0;
+  while (msg) {
+    if (msg->reply_to == 0)
+      visible_count++;
 
-      /* Check if someone is editing */
-      struct descriptor_data *d;
-      for (d = descriptor_list; d; d = d->next) {
-        if (d->connected >= BOARD_MAGIC && d->str == &msg->data) {
-          send_to_char(ch, "Wait until the author finishes writing.\r\n");
-          return;
-        }
-      }
+    if (visible_count == msg_num)
+      break;
 
-      /* Remove message */
-      if (msg->prev)
-        msg->prev->next = msg->next;
-      if (msg->next)
-        msg->next->prev = msg->prev;
-      if (b->messages == msg)
-        b->messages = msg->next;
+    msg = msg->prev;
+  }
 
-      free(msg->subject);
-      free(msg->data);
-      free(msg);
-      b->num_messages--;
+  if (!msg) {
+    send_to_char(ch, "No such message.\r\n");
+    return;
+  }
 
-      send_to_char(ch, "Message removed.\r\n");
-      sprintf(buf, "$n just removed message %d.", msg_num);
-      act(buf, FALSE, ch, 0, 0, TO_ROOM);
-      save_board(b);
+  if (GET_IDNUM(ch) != msg->poster && GET_LEVEL(ch) < REMOVE_LVL(b)) {
+    send_to_char(ch, "You are not allowed to remove other people's messages.\r\n");
+    return;
+  }
+
+  /* Check if someone is editing */
+  struct descriptor_data *d;
+  for (d = descriptor_list; d; d = d->next) {
+    if (d->connected >= BOARD_MAGIC && d->str == &msg->data) {
+      send_to_char(ch, "Wait until the author finishes writing.\r\n");
       return;
     }
   }
 
-  send_to_char(ch, "No such message.\r\n");
-}
+  /* Remove message */
+  if (msg->prev)
+    msg->prev->next = msg->next;
+  if (msg->next)
+    msg->next->prev = msg->prev;
+  if (b->messages == msg)
+    b->messages = msg->next;
 
+  free(msg->subject);
+  free(msg->data);
+  free(msg);
+  b->num_messages--;
+
+  send_to_char(ch, "Message removed.\r\n");
+  snprintf(buf, sizeof(buf), "$n just removed message %d.", msg_num);
+  act(buf, FALSE, ch, 0, 0, TO_ROOM);
+
+  save_board(b);
+}
 
 /* Mark message as read */
 int mesglookup(struct board_msg *message, struct char_data *ch, struct board_info *board) {

@@ -879,9 +879,6 @@ ACMD(do_gen_tog)
   case SCMD_ZONERESETS:
     result = PRF_TOG_CHK(ch, PRF_ZONERESETS);
     break;
-  case SCMD_VIEWORDER:
-    result = PRF_TOG_CHK(ch, PRF_VIEWORDER);
-    break;
   default:
     log("SYSERR: Unknown subcmd %d in do_gen_toggle.", subcmd);
     return;
