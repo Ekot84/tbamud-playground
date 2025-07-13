@@ -3574,7 +3574,8 @@ static struct zcheck_armor {
   {ITEM_WEAR_ABOUT,  10, "Cloak"},
   {ITEM_WEAR_WAIST,  10, "Belt"},
   {ITEM_WEAR_WRIST,  10, "Wristwear"},
-  {ITEM_WEAR_HOLD,   10, "Held item"}
+  {ITEM_WEAR_HOLD,   10, "Held item"},
+  {ITEM_WEAR_BACK,   10, "Backwear"}
 };
 
 /* Applies limits !! Very Important:  Keep these in the same order as in Structs.h.
@@ -3597,9 +3598,9 @@ static struct zcheck_affs {
   {APPLY_AGE,        -50,  50, "age"},
   {APPLY_CHAR_WEIGHT,-50,  50, "character weight"},
   {APPLY_CHAR_HEIGHT,-50,  50, "character height"},
-  {APPLY_MANA,       -50,  50, "mana"},
-  {APPLY_HIT,        -50,  50, "hit points"},
-  {APPLY_MOVE,       -50,  50, "movement"},
+  {APPLY_MANA,       -999,  999, "mana"},
+  {APPLY_HIT,        -999,  990, "hit points"},
+  {APPLY_MOVE,       -999,  999, "movement"},
   {APPLY_GOLD,         0,   0, "gold"},
   {APPLY_EXP,          0,   0, "experience"},
   {APPLY_AC,         -999,  999, "Armor Class"}, 

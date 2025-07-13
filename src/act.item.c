@@ -1210,7 +1210,10 @@ static void wear_message(struct char_data *ch, struct obj_data *obj, int where)
     "You wield $p."},
 
     {"$n grabs $p.",
-    "You grab $p."}
+    "You grab $p."},
+
+    {"$n wears $p on $s back.",
+    "You wear $p on your back."}
   };
 
   act(wear_messages[where][0], TRUE, ch, obj, 0, TO_ROOM);
@@ -1230,7 +1233,7 @@ static void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
     ITEM_WEAR_NECK, ITEM_WEAR_BODY, ITEM_WEAR_HEAD, ITEM_WEAR_LEGS,
     ITEM_WEAR_FEET, ITEM_WEAR_HANDS, ITEM_WEAR_ARMS, ITEM_WEAR_SHIELD,
     ITEM_WEAR_ABOUT, ITEM_WEAR_WAIST, ITEM_WEAR_WRIST, ITEM_WEAR_WRIST,
-    ITEM_WEAR_WIELD, ITEM_WEAR_TAKE
+    ITEM_WEAR_WIELD, ITEM_WEAR_TAKE, ITEM_WEAR_BACK
   };
 
   const char *already_wearing[] = {
@@ -1251,7 +1254,8 @@ static void perform_wear(struct char_data *ch, struct obj_data *obj, int where)
     "YOU SHOULD NEVER SEE THIS MESSAGE.  PLEASE REPORT.\r\n",
     "You're already wearing something around both of your wrists.\r\n",
     "You're already wielding a weapon.\r\n",
-    "You're already holding something.\r\n"
+    "You're already holding something.\r\n",
+    "You're already wearing something on your back.\r\n"
   };
 
   /* first, make sure that the wear position is valid. */
@@ -1301,6 +1305,7 @@ int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg)
     "!RESERVED!",
     "!RESERVED!",
     "!RESERVED!",
+    "back",
     "\n"
   };
 
@@ -1317,6 +1322,7 @@ int find_eq_pos(struct char_data *ch, struct obj_data *obj, char *arg)
     if (CAN_WEAR(obj, ITEM_WEAR_ABOUT))       where = WEAR_ABOUT;
     if (CAN_WEAR(obj, ITEM_WEAR_WAIST))       where = WEAR_WAIST;
     if (CAN_WEAR(obj, ITEM_WEAR_WRIST))       where = WEAR_WRIST_R;
+    if (CAN_WEAR(obj, ITEM_WEAR_BACK))        where = WEAR_BACK;
   } else if ((where = search_block(arg, keywords, FALSE)) < 0)
     send_to_char(ch, "'%s'?  What part of your body is THAT?\r\n", arg);
 
