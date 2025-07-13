@@ -567,6 +567,9 @@ static void oedit_disp_val4_menu(struct descriptor_data *d)
   case ITEM_FOOD:
     write_to_output(d, "Poisoned (0 = not poison) : ");
     break;
+  case ITEM_BOARD:
+    write_to_output(d, "Board title (max %d characters): ", MAX_BOARD_TITLE_LENGTH);
+    break;
   default:
     oedit_disp_menu(d);
   }
@@ -731,7 +734,7 @@ void oedit_parse(struct descriptor_data *d, char *arg)
     mudlog(CMP, MAX(LVL_BUILDER, GET_INVIS_LEV(d->character)), TRUE,
             "OLC: %s edits obj %d", GET_NAME(d->character), OLC_NUM(d));
 
-    /* 🟢 Här lägger du in board-logiken: */
+    /* Board Logic */
     if (GET_OBJ_TYPE(OLC_OBJ(d)) == ITEM_BOARD) {
       struct board_info *tmp;
       if ((tmp = locate_board(GET_OBJ_VNUM(OLC_OBJ(d)))) != NULL) {
@@ -1086,35 +1089,62 @@ void oedit_parse(struct descriptor_data *d, char *arg)
     oedit_disp_val4_menu(d);
     return;
 
-  case OEDIT_VALUE_4:
-    number = atoi(arg);
-    switch (GET_OBJ_TYPE(OLC_OBJ(d))) {
-    case ITEM_SCROLL:
-    case ITEM_POTION:
-      if (number == 0 || number == -1) {
-	GET_OBJ_VAL(OLC_OBJ(d), 3) = -1;
-        oedit_disp_menu(d);
-	return;
-      }
-      min_val = 1;
-      max_val = NUM_SPELLS;
-      break;
-    case ITEM_WAND:
-    case ITEM_STAFF:
-      min_val = 1;
-      max_val = NUM_SPELLS;
-      break;
-    case ITEM_WEAPON:
-      min_val = 0;
-      max_val = NUM_ATTACK_TYPES - 1;
-      break;
-    default:
-      min_val = -65000;
-      max_val = 65000;
-      break;
+case OEDIT_VALUE_4:
+  if (GET_OBJ_TYPE(OLC_OBJ(d)) == ITEM_BOARD) {
+    struct board_info *board = locate_board(GET_OBJ_VNUM(OLC_OBJ(d)));
+    if (!board) {
+      send_to_char(d->character, "Error: No board data associated with this object.\r\n");
+      oedit_disp_menu(d);
+      return;
     }
-    GET_OBJ_VAL(OLC_OBJ(d), 3) = LIMIT(number, min_val, max_val);
+
+    if (strlen(arg) > MAX_BOARD_TITLE_LENGTH)
+      arg[MAX_BOARD_TITLE_LENGTH] = '\0';
+
+    if (BOARD_TITLE(board))
+      free(BOARD_TITLE(board));
+
+    BOARD_TITLE(board) = strdup(arg);
+
+    oedit_disp_menu(d);
+    return;
+  }
+
+  /* Default numeric handling for other types */
+  number = atoi(arg);
+
+  switch (GET_OBJ_TYPE(OLC_OBJ(d))) {
+  case ITEM_SCROLL:
+  case ITEM_POTION:
+    if (number == 0 || number == -1) {
+      GET_OBJ_VAL(OLC_OBJ(d), 3) = -1;
+      oedit_disp_menu(d);
+      return;
+    }
+    min_val = 1;
+    max_val = NUM_SPELLS;
     break;
+
+  case ITEM_WAND:
+  case ITEM_STAFF:
+    min_val = 1;
+    max_val = NUM_SPELLS;
+    break;
+
+  case ITEM_WEAPON:
+    min_val = 0;
+    max_val = NUM_ATTACK_TYPES - 1;
+    break;
+
+  default:
+    min_val = -65000;
+    max_val = 65000;
+    break;
+  }
+
+  GET_OBJ_VAL(OLC_OBJ(d), 3) = LIMIT(number, min_val, max_val);
+  break;
+
 
   case OEDIT_PROMPT_APPLY:
     if ((number = atoi(arg)) == 0)

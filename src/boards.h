@@ -13,7 +13,10 @@
 #define BOARD_MAGIC 1048575
 
 /* Current board version (for file format) */
-#define CURRENT_BOARD_VER 2
+#define CURRENT_BOARD_VER 3
+
+/* Maximum length of a board title */
+#define MAX_BOARD_TITLE_LENGTH 80
 
 /* Message on the board */
 struct board_msg {
@@ -46,6 +49,7 @@ struct board_info {
   struct board_info *next;
   struct board_msg *messages;
   struct board_memory *memory[301];
+  char *title; /* Custom board title */
 };
 
 /* Macros for convenience */
@@ -58,6 +62,7 @@ struct board_info {
 #define BOARD_MESSAGES(i)     ((i)->messages)
 #define BOARD_MEMORY(i,j)     ((i)->memory[j])
 #define BOARD_VERSION(i)      ((i)->version)
+#define BOARD_TITLE(i)        ((i)->title)
 
 #define MESG_POSTER(i)        ((i)->poster)
 #define MESG_TIMESTAMP(i)     ((i)->timestamp)

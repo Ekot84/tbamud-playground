@@ -120,6 +120,7 @@ struct board_info *create_new_board(obj_vnum board_vnum) {
   BOARD_VERSION(temp) = CURRENT_BOARD_VER;
   temp->next = NULL;
   BOARD_MESSAGES(temp) = NULL;
+  BOARD_TITLE(temp) = strdup("This is a bulletin board.");
 
   if (!save_board(temp)) {
     log("Hm. Error while creating new board file [vnum: %d]. Unable to create new file.", board_vnum);
@@ -199,6 +200,17 @@ struct board_info *load_board(obj_vnum board_vnum) {
     REMOVE_LVL(temp_board) = GET_OBJ_VAL(obj, VAL_BOARD_ERASE);
     BOARD_MNUM(temp_board) = t[3];
     BOARD_VERSION(temp_board) = t[4];
+    /* Read title line */
+    get_line(fl, buf);
+    if (*buf == 'T') {
+      BOARD_TITLE(temp_board) = strdup(buf + 2);
+      size_t len = strlen(BOARD_TITLE(temp_board));
+      if (len > 0 && BOARD_TITLE(temp_board)[len - 1] == '~')
+        BOARD_TITLE(temp_board)[len - 1] = '\0';
+    } else {
+      BOARD_TITLE(temp_board) = strdup("This is a bulletin board.");
+    }
+
   }
 
   BOARD_NEXT(temp_board) = NULL;
@@ -284,18 +296,20 @@ int parse_message(FILE *fl, struct board_info *temp_board) {
   if (BOARD_VERSION(temp_board) != CURRENT_BOARD_VER) {
     if (fscanf(fl, "%ld\n", &(MESG_POSTER(tmsg))) != 1 ||
         fscanf(fl, "%ld\n", &(MESG_TIMESTAMP(tmsg))) != 1) {
-      log("Parse error in message for board [vnum: %d].  Skipping.", BOARD_VNUM(temp_board));
+      log("Parse error in message for board [vnum: %d]. Skipping.", BOARD_VNUM(temp_board));
       free(tmsg);
       return 0;
     }
+    /* Older version, no reply_to */
+    MESG_REPLY_TO(tmsg) = 0;
   } else {
     if (fscanf(fl, "%s\n", poster) != 1 ||
-        fscanf(fl, "%ld\n", &(MESG_TIMESTAMP(tmsg))) != 1) {
-      log("Parse error in message for board [vnum: %d].  Skipping.", BOARD_VNUM(temp_board));
+        fscanf(fl, "%ld\n", &(MESG_TIMESTAMP(tmsg))) != 1 ||
+        fscanf(fl, "%ld\n", &(MESG_REPLY_TO(tmsg))) != 1) {   // <-- Added this
+      log("Parse error in message for board [vnum: %d]. Skipping.", BOARD_VNUM(temp_board));
       free(tmsg);
       return 0;
     }
-    // Här måste vi strdup för att kopiera stackbuffer
     MESG_POSTER_NAME(tmsg) = strdup(poster);
   }
 
@@ -303,11 +317,11 @@ int parse_message(FILE *fl, struct board_info *temp_board) {
   MESG_SUBJECT(tmsg) = strdup(subject);
   MESG_DATA(tmsg) = fread_string(fl, buf);
 
-  // Init länkar
+  /* Init links */
   MESG_NEXT(tmsg) = NULL;
   MESG_PREV(tmsg) = NULL;
 
-  // Lägg till sist i listan
+  /* Append to end of list */
   if (BOARD_MESSAGES(temp_board)) {
     t2msg = BOARD_MESSAGES(temp_board);
     while (MESG_NEXT(t2msg))
@@ -320,6 +334,7 @@ int parse_message(FILE *fl, struct board_info *temp_board) {
 
   return 1;
 }
+
 
 
 /* Save a board to disk */
@@ -339,6 +354,8 @@ int save_board(struct board_info *ts) {
 
   fprintf(fl, "Board File\n%d %d %d %d %d\n",
           READ_LVL(ts), WRITE_LVL(ts), REMOVE_LVL(ts), BOARD_MNUM(ts), CURRENT_BOARD_VER);
+  
+  fprintf(fl, "T %s~\n", BOARD_TITLE(ts) ? BOARD_TITLE(ts) : "This is a bulletin board.");        
 
   for (message = BOARD_MESSAGES(ts); message; message = MESG_NEXT(message)) {
     if (BOARD_VERSION(ts) != CURRENT_BOARD_VER) {
@@ -356,11 +373,13 @@ int save_board(struct board_info *ts) {
       fprintf(fl, "#%d\n"
                   "%s\n"
                   "%ld\n"
+                  "%ld\n"   /* <-- reply_to goes here */
                   "%s\n"
                   "%s~\n",
               i++,
               MESG_POSTER_NAME(message) ? MESG_POSTER_NAME(message) : "Unknown",
               MESG_TIMESTAMP(message),
+              MESG_REPLY_TO(message), /* Save reply_to */
               MESG_SUBJECT(message) ? MESG_SUBJECT(message) : "No Subject",
               MESG_DATA(message) ? MESG_DATA(message) : "");
     }
@@ -386,7 +405,6 @@ int save_board(struct board_info *ts) {
   fclose(fl);
   return 1;
 }
-
 
 /* Clear all boards in memory */
 void clear_boards(void) {
@@ -461,8 +479,9 @@ void show_board(obj_vnum board_vnum, struct char_data *ch) {
   }
 
   snprintf(buf, sizeof(buf),
-           "\tnThis is a bulletin board.\r\n"
-           "\tnUsage: \tnREAD/REMOVE \tW<messg #>\tn, \tnRESPOND \tW<messg #>\tn, \tnWRITE \tW<header>\tn.\r\n");
+         "\tn%s\r\n"
+         "\tnUsage: \tnREAD/REMOVE \tW<messg #>\tn, \tnRESPOND \tW<messg #>\tn, \tnWRITE \tW<header>\tn.\r\n",
+         BOARD_TITLE(thisboard));
 
   /* Count only original messages (not replies) */
   int visible_count = 0;
@@ -732,7 +751,6 @@ void board_respond(obj_vnum board_vnum, struct char_data *ch, int mnum) {
   struct board_info *thisboard = locate_board(board_vnum);
   struct board_msg *message, *other;
   char buf[MAX_STRING_LENGTH];
-  int gcount = 0;
 
   if (!thisboard) {
     send_to_char(ch, "Error: Your board could not be found. Please report.\r\n");
@@ -755,14 +773,30 @@ void board_respond(obj_vnum board_vnum, struct char_data *ch, int mnum) {
     return;
   }
 
+  /* Start at last message (newest) */
   other = BOARD_MESSAGES(thisboard);
-  for (gcount = 1; other && gcount < mnum; gcount++)
-    other = MESG_NEXT(other);
+  if (other) {
+   while (MESG_NEXT(other))
+      other = MESG_NEXT(other);
+  }
+
+  /* Loop backwards and count only non-replies */
+  int visible_count = 0;
+  while (other) {
+    if (MESG_REPLY_TO(other) == 0)
+      visible_count++;
+
+    if (visible_count == mnum)
+      break;
+
+    other = MESG_PREV(other);
+  }
 
   if (!other) {
     send_to_char(ch, "That message does not exist.\r\n");
     return;
   }
+
 
   CREATE(message, struct board_msg, 1);
   if (BOARD_VERSION(thisboard) != CURRENT_BOARD_VER) {
