@@ -3755,7 +3755,7 @@ void init_char(struct char_data *ch)
   ch->player.short_descr = NULL;
   ch->player.long_descr = NULL;
   ch->player.description = NULL;
-
+  GET_PFILE_VERSION(ch) = PFILE_VERSION;
   GET_NUM_QUESTS(ch) = 0;
   ch->player_specials->saved.completed_quests = NULL;
   GET_QUEST(ch) = NOTHING;

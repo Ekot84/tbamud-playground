@@ -40,6 +40,8 @@
 #include "mud_event.h"
 #include "account.h"
 
+void migrate_player(struct char_data *ch, int old_version);
+
 /*Account Menu*/
 /*void display_account_menu(struct descriptor_data *d) {
   write_to_output(d, "\r\nChoose a character:\r\n");
@@ -71,12 +73,17 @@ void display_account_menu(struct descriptor_data *d) {
     clear_char(temp);
 
     CREATE(temp->player_specials, struct player_special_data, 1);
-    new_mobile_data(temp); // Optional: restore defaults like affects
+    new_mobile_data(temp);
 
     if (load_char(name, temp) > -1) {
+      // ⬇️ Check and migrate if needed
+      if (GET_PFILE_VERSION(temp) < PFILE_VERSION) {
+        migrate_player(temp, GET_PFILE_VERSION(temp));
+        save_char(temp);  // Save the updated version to file
+      }
+
       int level = GET_LEVEL(temp);
       const char *class = CLASS_ABBR(temp);
-      // const char *race = RACE_ABBR(temp); // Uncomment if using races
 
       if (temp->player.time.logon) {
         strftime(loginstr, sizeof(loginstr), "%Y%m%d", localtime(&temp->player.time.logon));
@@ -84,9 +91,6 @@ void display_account_menu(struct descriptor_data *d) {
 
       write_to_output(d, " %2d) %-12s %-4d %-10s %-s\r\n",
         i + 1, GET_NAME(temp), level, class, loginstr);
-      // If using race:
-      // write_to_output(d, " %2d) %-12s %-4d %-9s %-9s %s\r\n",
-      //   i + 1, GET_NAME(temp), level, race, class, loginstr);
     } else {
       write_to_output(d, " %2d) %-12s [Error loading character]\r\n", i + 1, name);
     }
@@ -103,6 +107,7 @@ void display_account_menu(struct descriptor_data *d) {
     "Q) Quit\r\n"
     "Enter choice: ");
 }
+
 
 
 void three_arguments(char *argument, char *first, char *second, char *third) {

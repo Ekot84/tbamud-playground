@@ -631,6 +631,8 @@ do                                                              \
 /** The total current number of carry slots (including affects). */
 #define GET_CARRY_SLOTS(ch) (compute_max_slots(ch))
 
+#define GET_PFILE_VERSION(ch)  ((ch)->player_specials->saved.pfile_version)
+
 
 
 /* Combat */

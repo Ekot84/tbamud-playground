@@ -42,6 +42,32 @@ static void load_HMVS(struct char_data *ch, const char *line, int mode);
 static void write_aliases_ascii(FILE *file, struct char_data *ch);
 static void read_aliases_ascii(FILE *file, struct char_data *ch, int count);
 
+
+/* This function migrates player data from an old version to the current version.
+ * It should be called when loading a player character from disk if the pfile_version
+ * is less than the current PFILE_VERSION. */
+void migrate_player(struct char_data *ch, int old_version) {
+  if (old_version < 2) {
+    // Set a reasonable default for base carry slots if unset
+    if (GET_BASE_CARRY_SLOTS(ch) <= 0)
+      GET_BASE_CARRY_SLOTS(ch) = 20;
+
+    // Add any additional field migrations for version 2 here
+    // Example: initializing new inventory fields (if added later)
+    // ch->player_specials->saved.inventory_slots[i] = NOTHING;
+  }
+
+  // Future migrations can be added here with version checks
+
+  GET_PFILE_VERSION(ch) = PFILE_VERSION;
+
+  // Log the migration
+  mudlog(NRM, LVL_IMMORT, TRUE, "Migrated %s's pfile from version %d to %d.",
+         GET_NAME(ch), old_version, PFILE_VERSION);
+}
+
+
+
 /* New version to build player index for ASCII Player Files. Generate index
  * table for the player file. */
 void build_player_index(void)
@@ -305,6 +331,8 @@ int load_char(const char *name, struct char_data *ch)
     for (i = 0; i < PR_ARRAY_MAX; i++)
       PRF_FLAGS(ch)[i] = PFDEF_PREFFLAGS;
 
+    GET_PFILE_VERSION(ch) = 1;  // Default version if not found
+
     while (get_line(fl, line)) {
       tag_argument(line, tag);
 
@@ -436,11 +464,12 @@ int load_char(const char *name, struct char_data *ch)
   break;
 
       case 'P':
-       if (!strcmp(tag, "Page"))  GET_PAGE_LENGTH(ch) = atoi(line);
-	else if (!strcmp(tag, "Pass"))	strcpy(GET_PASSWD(ch), line);
-	else if (!strcmp(tag, "Plyd"))	ch->player.time.played	= atoi(line);
-	else if (!strcmp(tag, "PfIn"))	POOFIN(ch)		= strdup(line);
-	else if (!strcmp(tag, "PfOt"))	POOFOUT(ch)		= strdup(line);
+        if (!strcmp(tag, "PVer")) ch->player_specials->saved.pfile_version = atoi(line);
+        else if (!strcmp(tag, "Page"))  GET_PAGE_LENGTH(ch) = atoi(line);
+        else if (!strcmp(tag, "Pass"))	strcpy(GET_PASSWD(ch), line);
+        else if (!strcmp(tag, "Plyd"))	ch->player.time.played	= atoi(line);
+        else if (!strcmp(tag, "PfIn"))	POOFIN(ch)		= strdup(line);
+        else if (!strcmp(tag, "PfOt"))	POOFOUT(ch)		= strdup(line);
         else if (!strcmp(tag, "Pref")) {
           if (sscanf(line, "%s %s %s %s", f1, f2, f3, f4) == 4) {
             PRF_FLAGS(ch)[0] = asciiflag_conv(f1);
@@ -449,8 +478,9 @@ int load_char(const char *name, struct char_data *ch)
             PRF_FLAGS(ch)[3] = asciiflag_conv(f4);
           } else
 	    PRF_FLAGS(ch)[0] = asciiflag_conv(f1);
-	  }
+        }
         break;
+
 
       case 'Q':
 	     if (!strcmp(tag, "Qstp"))  GET_QUESTPOINTS(ch)     = atoi(line);
@@ -524,6 +554,10 @@ int load_char(const char *name, struct char_data *ch)
 	sprintf(buf, "SYSERR: Unknown tag %s in pfile %s", tag, name);
       }
     }
+  }
+
+  if (GET_PFILE_VERSION(ch) < PFILE_VERSION) {
+  migrate_player(ch, GET_PFILE_VERSION(ch));
   }
 
   affect_total(ch);
@@ -617,7 +651,8 @@ void save_char(struct char_data * ch)
   ch->aff_abils = ch->real_abils;
   /* end char_to_store code */
 
-  if (GET_NAME(ch))				fprintf(fl, "Name: %s\n", GET_NAME(ch));
+  if (GET_NAME(ch))				  fprintf(fl, "Name: %s\n", GET_NAME(ch));
+                            fprintf(fl, "PVer: %d\n", GET_PFILE_VERSION(ch));
   if (GET_PASSWD(ch))				fprintf(fl, "Pass: %s\n", GET_PASSWD(ch));
   if (GET_TITLE(ch))				fprintf(fl, "Titl: %s\n", GET_TITLE(ch));
   if (ch->player.description && *ch->player.description) {

@@ -125,6 +125,8 @@ struct affected_type_plrtoascii {
 /* ==================== File Structure for Player ======================= */
 /*             BEWARE: Changing it will ruin the playerfile		  */
 struct char_file_u_plrtoascii {
+  int pfile_version;
+   
    /* char_player_data */
    char	name[MAX_NAME_LENGTH+1];
    char	description[PLR_DESC_LENGTH];

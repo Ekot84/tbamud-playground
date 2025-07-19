@@ -542,6 +542,9 @@
 #define RESPEC_COST_PER_LEVEL 5000 /**< Cost to respec per level */
 #define RESPEC_SINGLE_ABILITY_COST_PER_LEVEL 50 /**< Cost to respec a single ability per level */
 
+/* PFILE VERSION */
+#define PFILE_VERSION 2
+
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/
@@ -1107,6 +1110,7 @@ struct player_statistics {
 /** Data only needed by PCs, and needs to be saved to disk. */
 struct player_special_data_saved
 {
+  int pfile_version; /**< Version of the pfile format */
   byte skills[MAX_SKILLS+1]; /**< Character skills. */
   #define MAX_KILL_MEMORY 50
   int  kills_vnum[MAX_KILL_MEMORY]; /* Virtual numbers of mobs killed */
