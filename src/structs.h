@@ -496,8 +496,9 @@
 #define ITEM_QUEST            17   /**< Item is a quest item         */
 #define ITEM_UNIQUE_SAVE      18   /**< Item is a unique save item */
 #define ITEM_NOMAIL           19   /**< Item cannot be mailed */
+#define ITEM_NOSLOT           20   /**< Item cannot is not counted in inventory slots */
 /** Total number of item flags */
-#define NUM_ITEM_FLAGS    20
+#define NUM_ITEM_FLAGS    21
 
 /* Modifier constants used with obj affects ('A' fields) */
 #define APPLY_NONE              0	/**< No effect			*/
@@ -529,8 +530,9 @@
 #define APPLY_HIT_REGEN         26	/**< Apply to hit point regeneration	*/
 #define APPLY_MANA_REGEN        27	/**< Apply to mana point regeneration	*/
 #define APPLY_MOVE_REGEN     28	/**< Apply to stamina point regeneration	*/
+#define APPLY_CARRY_SLOTS        29	/**< Apply to number of carry slots	*/
 /** Total number of applies */
-#define NUM_APPLIES   29
+#define NUM_APPLIES   30
 
 /* Level related defines */
 #define LEVEL_EXP_MULTIPLIER 0.09 /**< Multiplier for exp per level */
@@ -1112,7 +1114,8 @@ struct player_special_data_saved
   byte kills_curpos;       /* Current position in array          */
   #define MAX_DISCOVERED_ZONES 512
   #define ZONE_FLAG_BYTES ((MAX_DISCOVERED_ZONES + 7) / 8)
-  uint8_t discovered_zones[ZONE_FLAG_BYTES];
+  uint8_t discovered_zones[ZONE_FLAG_BYTES]; /**< Bitvector of zones discovered */
+  int carry_slots; /**< Number of slots used for carrying items */
   sh_int apply_elemental_resistance; /**< Elemental resistance bonus */
   sh_int apply_magic_resistance; /**< Magic resistance bonus */
   sh_int apply_regeneration; /**< Regeneration bonus */

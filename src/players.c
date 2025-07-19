@@ -339,11 +339,12 @@ int load_char(const char *name, struct char_data *ch)
 	else if (!strcmp(tag, "Brth"))	ch->player.time.birth	= atol(line);
 	break;
 
-      case 'C':
-	     if (!strcmp(tag, "Cha "))	ch->real_abils.cha	= atoi(line);
-	else if (!strcmp(tag, "Clas"))	GET_CLASS(ch)		= atoi(line);
-	else if (!strcmp(tag, "Con "))	ch->real_abils.con	= atoi(line);
-	break;
+    case 'C':
+  if (!strcmp(tag, "Cha "))     ch->real_abils.cha = atoi(line);
+  else if (!strcmp(tag, "Clas")) GET_CLASS(ch) = atoi(line);
+  else if (!strcmp(tag, "Con ")) ch->real_abils.con = atoi(line);
+  else if (!strcmp(tag, "CSlt")) GET_BASE_CARRY_SLOTS(ch) = atoi(line); 
+    break;
 
       case 'D':
 	     if (!strcmp(tag, "Desc"))	ch->player.description	= fread_string(fl, buf2);
@@ -732,6 +733,9 @@ void save_char(struct char_data * ch)
 
   if (GET_DEATHS(ch) != 0)
   fprintf(fl, "Deaths: %d\n", GET_DEATHS(ch));
+
+  /* Carry slots */
+  fprintf(fl, "CSlt: %d\n", GET_BASE_CARRY_SLOTS(ch));
 
   char hexbuf[ZONE_FLAG_BYTES * 2 + 1] = {0}; // clear buffert
   for (int i = 0; i < ZONE_FLAG_BYTES; i++)

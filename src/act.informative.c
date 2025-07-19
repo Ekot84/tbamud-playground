@@ -1311,9 +1311,21 @@ ACMD(do_score_bin)
 
 ACMD(do_inventory)
 {
-  send_to_char(ch, "You are carrying:\r\n");
+  int used_slots = 0;
+  struct obj_data *obj;
+
+  for (obj = ch->carrying; obj; obj = obj->next_content) {
+    if (!OBJ_FLAGGED(obj, ITEM_NOSLOT)) {
+      used_slots++;
+    }
+  }
+
+  send_to_char(ch, "\tWYou are carrying [%d/%d] slots used:\tn\r\n",
+               used_slots, GET_CARRY_SLOTS(ch));
+
   list_obj_to_char(ch->carrying, ch, SHOW_OBJ_SHORT, TRUE);
 }
+
 
 ACMD(do_equipment)
 {

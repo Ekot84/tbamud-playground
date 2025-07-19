@@ -130,4 +130,16 @@ struct last_entry {
 void add_llog_entry(struct char_data *ch, int type);
 struct last_entry *find_llog_entry(int punique, long idnum);
 
+/* For computing max slots */
+int compute_max_slots(struct char_data *ch);
+
+/* For computing current slots */
+int compute_slots(struct char_data *ch);
+
+/* For computing container slots */
+int compute_container_slots(struct obj_data *container);
+
+/* For affecting carry slots */
+int affect_carry_slots(struct char_data *ch);
+
 #endif /* _HANDLER_H_ */

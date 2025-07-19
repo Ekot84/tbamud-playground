@@ -61,26 +61,35 @@ static void perform_put(struct char_data *ch, struct obj_data *obj, struct obj_d
   if (!has_obj_by_uid_in_lookup_table(object_id)) /* object might be extracted by drop_otrigger */
     return;
 
-  if ((GET_OBJ_VAL(cont, 0) > 0) &&
-      (GET_OBJ_WEIGHT(cont) + GET_OBJ_WEIGHT(obj) > GET_OBJ_VAL(cont, 0)))
-    act("$p won't fit in $P.", FALSE, ch, obj, cont, TO_CHAR);
-  else if (OBJ_FLAGGED(obj, ITEM_NODROP) && IN_ROOM(cont) != NOWHERE)
+  /* Check if container has max slots defined and is full */
+  if (GET_OBJ_VAL(cont, 4) > 0 &&
+      compute_container_slots(cont) >= GET_OBJ_VAL(cont, 4)) {
+    act("$P cannot hold any more items.", FALSE, ch, obj, cont, TO_CHAR);
+    return;
+  }
+
+  /* NODROP check */
+  if (OBJ_FLAGGED(obj, ITEM_NODROP) && IN_ROOM(cont) != NOWHERE) {
     act("You can't get $p out of your hand.", FALSE, ch, obj, NULL, TO_CHAR);
-  else {
-    obj_from_char(obj);
-    obj_to_obj(obj, cont);
+    return;
+  }
 
-    act("$n puts $p in $P.", TRUE, ch, obj, cont, TO_ROOM);
+  /* Move the object into the container */
+  obj_from_char(obj);
+  obj_to_obj(obj, cont);
 
-    /* Yes, I realize this is strange until we have auto-equip on rent. -gg */
-    if (OBJ_FLAGGED(obj, ITEM_NODROP) && !OBJ_FLAGGED(cont, ITEM_NODROP)) {
-      SET_BIT_AR(GET_OBJ_EXTRA(cont), ITEM_NODROP);
-      act("You get a strange feeling as you put $p in $P.", FALSE,
-                ch, obj, cont, TO_CHAR);
-    } else
-      act("You put $p in $P.", FALSE, ch, obj, cont, TO_CHAR);
+  act("$n puts $p in $P.", TRUE, ch, obj, cont, TO_ROOM);
+
+  /* Optional: mark container as NODROP if putting a NODROP item inside */
+  if (OBJ_FLAGGED(obj, ITEM_NODROP) && !OBJ_FLAGGED(cont, ITEM_NODROP)) {
+    SET_BIT_AR(GET_OBJ_EXTRA(cont), ITEM_NODROP);
+    act("You get a strange feeling as you put $p in $P.", FALSE,
+        ch, obj, cont, TO_CHAR);
+  } else {
+    act("You put $p in $P.", FALSE, ch, obj, cont, TO_CHAR);
   }
 }
+
 
 /* The following put modes are supported:
      1) put <object> <container>
@@ -161,28 +170,30 @@ ACMD(do_put)
   }
 }
 
+/* Check if the character can take the object, using only slots as capacity limitation */
 static int can_take_obj(struct char_data *ch, struct obj_data *obj)
 {
-if (!(CAN_WEAR(obj, ITEM_WEAR_TAKE))) {
-  act("$p: you can't take that!", FALSE, ch, obj, 0, TO_CHAR);
-  return (0);
+  /* Check if the object can be picked up at all */
+  if (!(CAN_WEAR(obj, ITEM_WEAR_TAKE))) {
+    act("$p: you can't take that!", FALSE, ch, obj, 0, TO_CHAR);
+    return (0);
   }
 
-if (!IS_NPC(ch) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
-  if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch)) {
-    act("$p: you can't carry that many items.", FALSE, ch, obj, 0, TO_CHAR);
-    return (0);
-  } else if ((IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj)) > CAN_CARRY_W(ch)) {
-    act("$p: you can't carry that much weight.", FALSE, ch, obj, 0, TO_CHAR);
+  /* Skip capacity checks for NPCs and players with NOHASSLE */
+  if (!IS_NPC(ch) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
+    /* Check slot limit */
+    if (compute_slots(ch) >= compute_max_slots(ch)) {
+      act("$p: you can't carry any more items.", FALSE, ch, obj, 0, TO_CHAR);
+      return (0);
+    }
+  }
+
+  /* Check if someone is sitting on the object */
+  if (OBJ_SAT_IN_BY(obj)) {
+    act("It appears someone is sitting on $p.", FALSE, ch, obj, 0, TO_CHAR);
     return (0);
   }
-}
-  
-  if (OBJ_SAT_IN_BY(obj)){
-    act("It appears someone is sitting on $p..", FALSE, ch, obj, 0, TO_CHAR);
-    return (0);
-  }
-  
+
   return (1);
 }
 
@@ -204,12 +215,12 @@ static void get_check_money(struct char_data *ch, struct obj_data *obj)
 }
 
 static void perform_get_from_container(struct char_data *ch, struct obj_data *obj,
-				     struct obj_data *cont, int mode)
+                                       struct obj_data *cont, int mode)
 {
+  /* If FIND_OBJ_INV (inventory) or can_take_obj returns true, proceed */
   if (mode == FIND_OBJ_INV || can_take_obj(ch, obj)) {
-    if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch))
-      act("$p: you can't hold any more items.", FALSE, ch, obj, 0, TO_CHAR);
-    else if (get_otrigger(obj, ch)) {
+    /* Trigger check must pass before taking the object */
+    if (get_otrigger(obj, ch)) {
       obj_from_obj(obj);
       obj_to_char(obj, ch);
       act("You get $p from $P.", FALSE, ch, obj, cont, TO_CHAR);
@@ -218,6 +229,7 @@ static void perform_get_from_container(struct char_data *ch, struct obj_data *ob
     }
   }
 }
+
 
 void get_from_container(struct char_data *ch, struct obj_data *cont,
 			     char *arg, int mode, int howmany)
@@ -619,33 +631,38 @@ ACMD(do_drop)
 }
 
 static void perform_give(struct char_data *ch, struct char_data *vict,
-		       struct obj_data *obj)
+                         struct obj_data *obj)
 {
   if (!give_otrigger(obj, ch, vict))
     return;
   if (!receive_mtrigger(vict, ch, obj))
     return;
 
+  /* NODROP check */
   if (OBJ_FLAGGED(obj, ITEM_NODROP) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
     act("You can't let go of $p!!  Yeech!", FALSE, ch, obj, 0, TO_CHAR);
     return;
   }
-  if (IS_CARRYING_N(vict) >= CAN_CARRY_N(vict) && GET_LEVEL(ch) < LVL_IMMORT && GET_LEVEL(vict) < LVL_IMMORT) {
-    act("$N seems to have $S hands full.", FALSE, ch, 0, vict, TO_CHAR);
-    return;
+
+  /* Capacity check for the receiver */
+  if (!IS_NPC(vict) && !PRF_FLAGGED(vict, PRF_NOHASSLE) &&
+      GET_LEVEL(vict) < LVL_IMMORT) {
+    if (compute_slots(vict) >= compute_max_slots(vict)) {
+      act("$N seems to have $S hands full.", FALSE, ch, 0, vict, TO_CHAR);
+      return;
+    }
   }
-  if (GET_OBJ_WEIGHT(obj) + IS_CARRYING_W(vict) > CAN_CARRY_W(vict) && GET_LEVEL(ch) < LVL_IMMORT && GET_LEVEL(vict) < LVL_IMMORT) {
-    act("$E can't carry that much weight.", FALSE, ch, 0, vict, TO_CHAR);
-    return;
-  }
+
   obj_from_char(obj);
   obj_to_char(obj, vict);
+
   act("You give $p to $N.", FALSE, ch, obj, vict, TO_CHAR);
   act("$n gives you $p.", FALSE, ch, obj, vict, TO_VICT);
   act("$n gives $p to $N.", TRUE, ch, obj, vict, TO_NOTVICT);
 
-  autoquest_trigger_check( ch, vict, obj, AQ_OBJ_RETURN);
+  autoquest_trigger_check(ch, vict, obj, AQ_OBJ_RETURN);
 }
+
 
 /* utility function for give */
 static struct char_data *give_find_vict(struct char_data *ch, char *arg)
@@ -1467,14 +1484,17 @@ static void perform_remove(struct char_data *ch, int pos)
 {
   struct obj_data *obj;
 
-  if (!(obj = GET_EQ(ch, pos)))
+  if (!(obj = GET_EQ(ch, pos))) {
     log("SYSERR: perform_remove: bad pos %d passed.", pos);
-    /*  This error occurs when perform_remove() is passed a bad 'pos'
-     *  (location) to remove an object from. */
-  else if (OBJ_FLAGGED(obj, ITEM_NODROP) && !PRF_FLAGGED(ch, PRF_NOHASSLE))
+    /* This error occurs when perform_remove() is passed a bad 'pos'
+     * (location) to remove an object from. */
+  }
+  else if (OBJ_FLAGGED(obj, ITEM_NODROP) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
     act("You can't remove $p, it must be CURSED!", FALSE, ch, obj, 0, TO_CHAR);
-  else if (IS_CARRYING_N(ch) >= CAN_CARRY_N(ch)&& !PRF_FLAGGED(ch, PRF_NOHASSLE))
-    act("$p: you can't carry that many items!", FALSE, ch, obj, 0, TO_CHAR);
+  }
+  else if (!PRF_FLAGGED(ch, PRF_NOHASSLE) && compute_slots(ch) >= compute_max_slots(ch)) {
+    act("$p: you can't carry any more items!", FALSE, ch, obj, 0, TO_CHAR);
+  }
   else {
     if (!remove_otrigger(obj, ch))
       return;
@@ -1484,6 +1504,7 @@ static void perform_remove(struct char_data *ch, int pos)
     act("$n stops using $p.", TRUE, ch, obj, 0, TO_ROOM);
   }
 }
+
 
 ACMD(do_remove)
 {

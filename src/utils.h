@@ -625,6 +625,14 @@ do                                                              \
 /** Stats. */
 #define GET_STATISTICS(ch)                    ((ch)->player_specials->saved.stats)
 
+/** The base number of carry slots the character has (without affects). */
+#define GET_BASE_CARRY_SLOTS(ch) CHECK_PLAYER_SPECIAL((ch), ((ch)->player_specials->saved.carry_slots))
+
+/** The total current number of carry slots (including affects). */
+#define GET_CARRY_SLOTS(ch) (compute_max_slots(ch))
+
+
+
 /* Combat */
 #define GET_KILLS_TOTAL(ch)                   (GET_STATISTICS(ch).kills_total)
 #define GET_KILLS_LEGIT_TOTAL(ch)             (GET_STATISTICS(ch).kills_legit_total)

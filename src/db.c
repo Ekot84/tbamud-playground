@@ -3761,6 +3761,7 @@ void init_char(struct char_data *ch)
   GET_QUEST(ch) = NOTHING;
   GET_STATISTICS(ch) = (struct player_statistics){0};
   CLEAR_ALL_ZONES_DISCOVERED(ch);
+  GET_BASE_CARRY_SLOTS(ch) = 20;
 
   ch->player.time.birth = time(0);
   ch->player.time.logon = time(0);

@@ -1531,3 +1531,84 @@ void join_group(struct char_data *ch, struct group_data *group)
   else
     send_to_group(NULL, group, "%s joins the group.\r\n", GET_NAME(ch));		
 }
+
+/*
+ * Compute how many slots the character can carry.
+ * This is the base number of slots, plus any affects that modify it.
+ */
+int compute_max_slots(struct char_data *ch)
+{
+  int slots = GET_BASE_CARRY_SLOTS(ch);
+
+  /* Lägg till affects */
+  slots += affect_carry_slots(ch);
+
+  if (slots < 0)
+    slots = 0;
+
+  return slots;
+}
+
+/*
+ * Compute how many inventory slots the character is currently using.
+ * Counts only items directly in inventory (not inside containers).
+ * Ignores items flagged ITEM_NOSLOT.
+ */
+int compute_slots(struct char_data *ch)
+{
+  int count = 0;
+  struct obj_data *obj, *prev = NULL;
+
+  for (obj = ch->carrying; obj; obj = obj->next_content) {
+    /* Skip objects inside containers */
+    if (obj->in_obj)
+      continue;
+
+    /* Skip items flagged as not counting towards slots */
+    if (OBJ_FLAGGED(obj, ITEM_NOSLOT))
+      continue;
+
+    /* Optional stack handling */
+    if (prev && GET_OBJ_VNUM(obj) == GET_OBJ_VNUM(prev))
+      continue;
+
+    count++;
+    prev = obj;
+  }
+
+  return count;
+}
+
+/*
+ * Count how many slots are currently used inside a container.
+ * Ignores nested containers.
+ */
+int compute_container_slots(struct obj_data *container)
+{
+  int count = 0;
+  struct obj_data *obj;
+
+  for (obj = container->contains; obj; obj = obj->next_content) {
+    if (OBJ_FLAGGED(obj, ITEM_NOSLOT))
+      continue;
+    count++;
+  }
+
+  return count;
+}
+
+/*
+ * Compute the sum of all affects giving APPLY_CARRY_SLOTS.
+ */
+int affect_carry_slots(struct char_data *ch)
+{
+  int total = 0;
+  struct affected_type *af;
+
+  for (af = ch->affected; af; af = af->next) {
+    if (af->location == APPLY_CARRY_SLOTS)
+      total += af->modifier;
+  }
+
+  return total;
+}

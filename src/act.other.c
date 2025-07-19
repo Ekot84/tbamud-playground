@@ -185,75 +185,82 @@ ACMD(do_steal)
   /* 101% is a complete failure */
   percent = rand_number(1, 101) - GET_DEX(ch) / 20;
 
-
   if (GET_POS(vict) < POS_SLEEPING)
-    percent = -1;		/* ALWAYS SUCCESS, unless heavy object. */
+    percent = -1;  /* ALWAYS SUCCESS, unless heavy object. */
 
   if (!CONFIG_PT_ALLOWED && !IS_NPC(vict))
     pcsteal = 1;
 
-  if (!AWAKE(vict))	/* Easier to steal from sleeping people. */
+  if (!AWAKE(vict))  /* Easier to steal from sleeping people. */
     percent -= 50;
 
   /* No stealing if not allowed. If it is no stealing from Imm's or Shopkeepers. */
   if (GET_LEVEL(vict) >= LVL_IMMORT || pcsteal || GET_MOB_SPEC(vict) == shop_keeper)
-    percent = 101;		/* Failure */
+    percent = 101;  /* Failure */
 
   if (str_cmp(obj_name, "coins") && str_cmp(obj_name, "gold")) {
 
     if (!(obj = get_obj_in_list_vis(ch, obj_name, NULL, vict->carrying))) {
 
-      for (eq_pos = 0; eq_pos < NUM_WEARS; eq_pos++)
-	if (GET_EQ(vict, eq_pos) &&
-	    (isname(obj_name, GET_EQ(vict, eq_pos)->name)) &&
-	    CAN_SEE_OBJ(ch, GET_EQ(vict, eq_pos))) {
-	  obj = GET_EQ(vict, eq_pos);
-	  break;
-	}
+      for (eq_pos = 0; eq_pos < NUM_WEARS; eq_pos++) {
+        if (GET_EQ(vict, eq_pos) &&
+            (isname(obj_name, GET_EQ(vict, eq_pos)->name)) &&
+            CAN_SEE_OBJ(ch, GET_EQ(vict, eq_pos))) {
+          obj = GET_EQ(vict, eq_pos);
+          break;
+        }
+      }
       if (!obj) {
-	act("$E hasn't got that item.", FALSE, ch, 0, vict, TO_CHAR);
-	return;
-      } else {			/* It is equipment */
-	if ((GET_POS(vict) > POS_STUNNED)) {
-	  send_to_char(ch, "Steal the equipment now?  Impossible!\r\n");
-	  return;
-	} else {
+        act("$E hasn't got that item.", FALSE, ch, 0, vict, TO_CHAR);
+        return;
+      } else {  /* It is equipment */
+        if ((GET_POS(vict) > POS_STUNNED)) {
+          send_to_char(ch, "Steal the equipment now?  Impossible!\r\n");
+          return;
+        } else {
+          /* --- SLOTS CHECK when stealing equipment --- */
+          if (compute_slots(ch) >= compute_max_slots(ch) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
+            send_to_char(ch, "You can't carry any more items.\r\n");
+            return;
+          }
           if (!give_otrigger(obj, vict, ch) ||
-              !receive_mtrigger(ch, vict, obj) ) {
+              !receive_mtrigger(ch, vict, obj)) {
             send_to_char(ch, "Impossible!\r\n");
             return;
           }
-	  act("You unequip $p and steal it.", FALSE, ch, obj, 0, TO_CHAR);
-	  act("$n steals $p from $N.", FALSE, ch, obj, vict, TO_NOTVICT);
-	  obj_to_char(unequip_char(vict, eq_pos), ch);
-	}
+          act("You unequip $p and steal it.", FALSE, ch, obj, 0, TO_CHAR);
+          act("$n steals $p from $N.", FALSE, ch, obj, vict, TO_NOTVICT);
+          obj_to_char(unequip_char(vict, eq_pos), ch);
+        }
       }
-    } else {			/* obj found in inventory */
+    } else {  /* obj found in inventory */
 
-      percent += GET_OBJ_WEIGHT(obj);	/* Make heavy harder */
+      percent += GET_OBJ_WEIGHT(obj);  /* Make heavy harder */
 
       if (percent > GET_SKILL(ch, SKILL_STEAL)) {
-	ohoh = TRUE;
-	send_to_char(ch, "Oops..\r\n");
-	act("$n tried to steal something from you!", FALSE, ch, 0, vict, TO_VICT);
-	act("$n tries to steal something from $N.", TRUE, ch, 0, vict, TO_NOTVICT);
-      } else {			/* Steal the item */
-	if (IS_CARRYING_N(ch) + 1 < CAN_CARRY_N(ch)) {
-          if (!give_otrigger(obj, vict, ch) ||
-              !receive_mtrigger(ch, vict, obj) ) {
-            send_to_char(ch, "Impossible!\r\n");
-            return;
-          }
-	  if (IS_CARRYING_W(ch) + GET_OBJ_WEIGHT(obj) < CAN_CARRY_W(ch)) {
-	    obj_from_char(obj);
-	    obj_to_char(obj, ch);
-	    send_to_char(ch, "Got it!\r\n");
-	  }
-	} else
-	  send_to_char(ch, "You cannot carry that much.\r\n");
+        ohoh = TRUE;
+        send_to_char(ch, "Oops..\r\n");
+        act("$n tried to steal something from you!", FALSE, ch, 0, vict, TO_VICT);
+        act("$n tries to steal something from $N.", TRUE, ch, 0, vict, TO_NOTVICT);
+      } else {  /* Steal the item */
+        /* --- SLOTS CHECK when stealing inventory item --- */
+        if (compute_slots(ch) >= compute_max_slots(ch) && !PRF_FLAGGED(ch, PRF_NOHASSLE)) {
+          send_to_char(ch, "You can't carry any more items.\r\n");
+          return;
+        }
+
+        if (!give_otrigger(obj, vict, ch) ||
+            !receive_mtrigger(ch, vict, obj)) {
+          send_to_char(ch, "Impossible!\r\n");
+          return;
+        }
+
+        obj_from_char(obj);
+        obj_to_char(obj, ch);
+        send_to_char(ch, "Got it!\r\n");
       }
     }
-  } else {			/* Steal some coins */
+  } else {  /* Steal some coins */
     if (AWAKE(vict) && (percent > GET_SKILL(ch, SKILL_STEAL))) {
       ohoh = TRUE;
       send_to_char(ch, "Oops..\r\n");
@@ -264,14 +271,14 @@ ACMD(do_steal)
       gold = (GET_GOLD(vict) * rand_number(1, 10)) / 100;
       gold = MIN(1782, gold);
       if (gold > 0) {
-		increase_gold(ch, gold);
-		decrease_gold(vict, gold);
+        increase_gold(ch, gold);
+        decrease_gold(vict, gold);
         if (gold > 1)
-	  send_to_char(ch, "Bingo!  You got %d gold coins.\r\n", gold);
-	else
-	  send_to_char(ch, "You manage to swipe a solitary gold coin.\r\n");
+          send_to_char(ch, "Bingo! You got %d gold coins.\r\n", gold);
+        else
+          send_to_char(ch, "You manage to swipe a solitary gold coin.\r\n");
       } else {
-	send_to_char(ch, "You couldn't get any gold...\r\n");
+        send_to_char(ch, "You couldn't get any gold...\r\n");
       }
     }
   }
@@ -279,6 +286,7 @@ ACMD(do_steal)
   if (ohoh && IS_NPC(vict) && AWAKE(vict))
     hit(vict, ch, TYPE_UNDEFINED);
 }
+
 
 ACMD(do_respec)
 {

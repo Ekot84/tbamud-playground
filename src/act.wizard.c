@@ -894,8 +894,11 @@ static void do_stat_character(struct char_data *ch, struct char_data *k)
 	    k->mob_specials.damnodice, k->mob_specials.damsizedice);
 
   for (i = 0, j = k->carrying; j; j = j->next_content, i++);
-  send_to_char(ch, "Carried: weight: %d, items: %d; Items in: inventory: %d, ", IS_CARRYING_W(k), IS_CARRYING_N(k), i);
-
+  send_to_char(ch, "Carried: weight: %d, items: %d; Items in: inventory: %d\n", IS_CARRYING_W(k), IS_CARRYING_N(k), i);
+  send_to_char(ch, "Carry Slots : %d used / %d total (base %d), ",
+  compute_slots(k),
+  GET_CARRY_SLOTS(k),
+  GET_BASE_CARRY_SLOTS(k));
   for (i = 0, i2 = 0; i < NUM_WEARS; i++)
     if (GET_EQ(k, i))
       i2++;
@@ -2941,6 +2944,7 @@ static struct set_struct {
    { "wis", 		LVL_BUILDER, 	BOTH, 	NUMBER }, /* 55 */
    { "questpoints",     LVL_GOD,        PC,     NUMBER },
    { "questhistory",    LVL_GOD,        PC,   NUMBER },
+   { "carry_slots", LVL_IMPL, PC, NUMBER },
    { "\n", 0, BOTH, MISC }
   };
 
@@ -3352,8 +3356,12 @@ static int perform_set(struct char_data *ch, struct char_data *vict, int mode, c
           send_to_char(ch, "Quest %d added to history for player %s.\r\n",
      qvnum, GET_NAME(vict));
         }
-        break;
+        break;  
       }
+      case 58: /* carry_slots */
+        GET_BASE_CARRY_SLOTS(vict) = RANGE(0, 100);
+        send_to_char(ch, "Carry slots for %s set to %d.\r\n", GET_NAME(vict), GET_BASE_CARRY_SLOTS(vict));
+      break;
     default:
       send_to_char(ch, "Can't set that!\r\n");
       return (0);
@@ -3611,7 +3619,8 @@ static struct zcheck_affs {
   {APPLY_CRITICAL_CHANCE, -999, 999, "Critical Hit Chance"},
   {APPLY_CRITICAL_DAMAGE, -999, 999, "Critical Hit Damage"},
   {APPLY_EXP_PERCENTAGE, -999, 999, "Experience Percentage"},
-  {APPLY_LUCK, -999, 999, "Luck"}
+  {APPLY_LUCK, -999, 999, "Luck"},
+  {APPLY_CARRY_SLOTS, -999, 999, "Carry Slots"}
 };
 
 /* These are ABS() values. */
