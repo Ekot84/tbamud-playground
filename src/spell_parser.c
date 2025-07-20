@@ -836,6 +836,15 @@ void mag_assign_spells(void) {
   spello(SPELL_HEAL, "heal", 60, 40, 3, 1, POS_FIGHTING,
   TAR_CHAR_ROOM, FALSE, MAG_POINTS | MAG_UNAFFECTS, NULL);
 
+  spello(SPELL_HEAL_PERCENT, "heal percent", 60, 40, 3, 1, POS_FIGHTING,
+       TAR_CHAR_ROOM, FALSE, MAG_MANUAL, NULL);
+
+  spello(SPELL_MANA_PERCENT, "mana percent", 60, 40, 3, 1, POS_FIGHTING,
+       TAR_CHAR_ROOM, FALSE, MAG_MANUAL, NULL);
+
+spello(SPELL_STAMINA_PERCENT, "stamina percent", 60, 40, 3, 1, POS_FIGHTING,
+       TAR_CHAR_ROOM, FALSE, MAG_MANUAL, NULL);
+
   spello(SPELL_INFRAVISION, "infravision", 25, 10, 1, 1, POS_STANDING,
   TAR_CHAR_ROOM | TAR_SELF_ONLY, FALSE, MAG_AFFECTS,
       "Your night vision seems to fade.");

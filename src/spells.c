@@ -447,3 +447,95 @@ ASPELL(spell_detect_poison)
     }
   }
 }
+
+ASPELL(spell_heal_percent)
+{
+  int percent, max_hp, heal_amt;
+
+  // Sanity check
+  if (ch == NULL || victim == NULL)
+    return;
+
+  // Determine heal percentage:
+  // - If cast from a potion: use value[0] from the object.
+  // - If cast as a spell: use the spell level passed in.
+  if (obj != NULL)
+    percent = GET_OBJ_VAL(obj, 0);  // value[0] holds the percent
+  else
+    percent = level;                // fallback: spell level as percent
+
+  // Clamp to safe bounds (1% to 100%)
+  percent = MAX(1, MIN(percent, 100));
+
+  // Calculate healing amount based on victim's max HP
+  max_hp = GET_MAX_HIT(victim);
+  heal_amt = (max_hp * percent) / 100;
+
+  if (heal_amt <= 0)
+    heal_amt = 1;
+
+  // Apply healing, but do not exceed max HP
+  GET_HIT(victim) = MIN(GET_HIT(victim) + heal_amt, GET_MAX_HIT(victim));
+
+  // Feedback messages
+  if (ch == victim) {
+    send_to_char(ch, "\tGYou feel the healing magic mend your wounds.\tn\r\n");
+    act("$n looks visibly healthier.", true, ch, NULL, NULL, TO_ROOM);
+  } else {
+    send_to_char(victim, "\tGYou feel better as %s's magic heals you.\tn\r\n", GET_NAME(ch));
+    act("$n looks visibly healthier after $N casts a healing spell.",
+        true, victim, NULL, ch, TO_ROOM);
+  }
+}
+
+ASPELL(spell_mana_percent)
+{
+  int percent, max_mana, restore_amt;
+
+  if (ch == NULL || victim == NULL)
+    return;
+
+  percent = obj ? GET_OBJ_VAL(obj, 0) : level;
+  percent = MAX(1, MIN(percent, 100));
+
+  max_mana = GET_MAX_MANA(victim);
+  restore_amt = (max_mana * percent) / 100;
+  if (restore_amt <= 0)
+    restore_amt = 1;
+
+  GET_MANA(victim) = MIN(GET_MANA(victim) + restore_amt, GET_MAX_MANA(victim));
+
+  if (ch == victim) {
+    send_to_char(ch, "\tBYou feel magical energy surge back into your body.\tn\r\n");
+    act("$n looks magically recharged.", true, ch, NULL, NULL, TO_ROOM);
+  } else {
+    send_to_char(victim, "\tBYou feel energy flow back into you from %s's magic.\tn\r\n", GET_NAME(ch));
+    act("$n regains magical strength as $N casts a spell.", true, victim, NULL, ch, TO_ROOM);
+  }
+}
+
+ASPELL(spell_stamina_percent)
+{
+  int percent, max_move, restore_amt;
+
+  if (ch == NULL || victim == NULL)
+    return;
+
+  percent = obj ? GET_OBJ_VAL(obj, 0) : level;
+  percent = MAX(1, MIN(percent, 100));
+
+  max_move = GET_MAX_MOVE(victim);
+  restore_amt = (max_move * percent) / 100;
+  if (restore_amt <= 0)
+    restore_amt = 1;
+
+  GET_MOVE(victim) = MIN(GET_MOVE(victim) + restore_amt, GET_MAX_MOVE(victim));
+
+  if (ch == victim) {
+    send_to_char(ch, "\tYYour body feels less weary.\tn\r\n");
+    act("$n stands a little straighter, looking re-energized.", true, ch, NULL, NULL, TO_ROOM);
+  } else {
+    send_to_char(victim, "\tYYou feel invigorated by %s's spell.\tn\r\n", GET_NAME(ch));
+    act("$n regains stamina as $N casts a spell.", true, victim, NULL, ch, TO_ROOM);
+  }
+}

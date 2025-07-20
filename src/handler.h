@@ -130,6 +130,8 @@ struct last_entry {
 void add_llog_entry(struct char_data *ch, int type);
 struct last_entry *find_llog_entry(int punique, long idnum);
 
+bool is_stackable(struct obj_data *obj);
+
 /* For computing max slots */
 int compute_max_slots(struct char_data *ch);
 

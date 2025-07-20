@@ -609,12 +609,28 @@ static void look_in_obj(struct char_data *ch, char *arg)
         switch (bits) {
         case FIND_OBJ_INV:
           send_to_char(ch, " (carried): \r\n");
+          if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && GET_OBJ_VAL(obj, 0) > 0) {
+            int used = compute_container_slots(obj);
+            int max = GET_OBJ_VAL(obj, 0);
+            send_to_char(ch, "[%d/%d] slots used:\r\n", used, max);
+          } 
           break;
+
         case FIND_OBJ_ROOM:
           send_to_char(ch, " (here): \r\n");
+          if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && GET_OBJ_VAL(obj, 0) > 0) {
+            int used = compute_container_slots(obj);
+            int max = GET_OBJ_VAL(obj, 0);
+            send_to_char(ch, "[%d/%d] slots used:\r\n", used, max);
+          } 
           break;
         case FIND_OBJ_EQUIP:
           send_to_char(ch, " (used): \r\n");
+          if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && GET_OBJ_VAL(obj, 0) > 0) {
+            int used = compute_container_slots(obj);
+            int max = GET_OBJ_VAL(obj, 0);
+            send_to_char(ch, "[%d/%d] slots used:\r\n", used, max);
+          } 
           break;
         }
 

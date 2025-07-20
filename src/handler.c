@@ -1533,6 +1533,16 @@ void join_group(struct char_data *ch, struct group_data *group)
 }
 
 /*
+ * Check if an object is stackable.
+ * Stackable objects can be combined in inventory.
+ */
+bool is_stackable(struct obj_data *obj) {
+  return (OBJ_FLAGGED(obj, ITEM_STACKABLE) ? TRUE : FALSE);
+}
+
+
+
+/*
  * Compute how many slots the character can carry.
  * This is the base number of slots, plus any affects that modify it.
  */
@@ -1557,41 +1567,67 @@ int compute_max_slots(struct char_data *ch)
 int compute_slots(struct char_data *ch)
 {
   int count = 0;
-  struct obj_data *obj, *prev = NULL;
+  struct obj_data *obj;
+  bool already_counted;
+  obj_vnum seen[200]; // max 200 unique vnum – just a local cap
+  int num_seen = 0;
 
   for (obj = ch->carrying; obj; obj = obj->next_content) {
-    /* Skip objects inside containers */
-    if (obj->in_obj)
-      continue;
-
-    /* Skip items flagged as not counting towards slots */
     if (OBJ_FLAGGED(obj, ITEM_NOSLOT))
       continue;
 
-    /* Optional stack handling */
-    if (prev && GET_OBJ_VNUM(obj) == GET_OBJ_VNUM(prev))
-      continue;
-
-    count++;
-    prev = obj;
+    if (is_stackable(obj)) {
+      already_counted = FALSE;
+      for (int i = 0; i < num_seen; i++) {
+        if (GET_OBJ_VNUM(obj) == seen[i]) {
+          already_counted = TRUE;
+          break;
+        }
+      }
+      if (!already_counted) {
+        seen[num_seen++] = GET_OBJ_VNUM(obj);
+        count++;
+      }
+    } else {
+      count++;
+    }
   }
-
   return count;
 }
 
 /*
  * Count how many slots are currently used inside a container.
+ * Stackable items count as one slot per vnum.
  * Ignores nested containers.
  */
 int compute_container_slots(struct obj_data *container)
 {
   int count = 0;
   struct obj_data *obj;
+  obj_vnum seen[200];  // max 200 unique vnum for container – just a local cap
+  int num_seen = 0;
+  bool already_counted;
 
   for (obj = container->contains; obj; obj = obj->next_content) {
     if (OBJ_FLAGGED(obj, ITEM_NOSLOT))
       continue;
-    count++;
+
+    if (OBJ_FLAGGED(obj, ITEM_STACKABLE)) {
+      already_counted = FALSE;
+      for (int i = 0; i < num_seen; i++) {
+        if (GET_OBJ_VNUM(obj) == seen[i]) {
+          already_counted = TRUE;
+          break;
+        }
+      }
+      if (!already_counted) {
+        if (num_seen < 100)
+          seen[num_seen++] = GET_OBJ_VNUM(obj);  // avoid overflow
+        count++;
+      }
+    } else {
+      count++;
+    }
   }
 
   return count;

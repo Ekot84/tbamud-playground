@@ -451,7 +451,7 @@
 #define ITEM_PEN       21		/**< Item is a pen		*/
 #define ITEM_BOAT      22		/**< Item is a boat		*/
 #define ITEM_FOUNTAIN  23		/**< Item is a fountain		*/
-#define ITEM_BOARD   24		/**< Item is a board		*/
+#define ITEM_BOARD     24		/**< Item is a board		*/
 /** Total number of item types.*/
 #define NUM_ITEM_TYPES    25
 
@@ -497,8 +497,9 @@
 #define ITEM_UNIQUE_SAVE      18   /**< Item is a unique save item */
 #define ITEM_NOMAIL           19   /**< Item cannot be mailed */
 #define ITEM_NOSLOT           20   /**< Item cannot is not counted in inventory slots */
+#define ITEM_STACKABLE        21	 /**< Item is stackable, like a pile of gold coins */
 /** Total number of item flags */
-#define NUM_ITEM_FLAGS    21
+#define NUM_ITEM_FLAGS    22
 
 /* Modifier constants used with obj affects ('A' fields) */
 #define APPLY_NONE              0	/**< No effect			*/
@@ -534,6 +535,7 @@
 /** Total number of applies */
 #define NUM_APPLIES   30
 
+/* Defines for added stuff -Eko */
 /* Level related defines */
 #define LEVEL_EXP_MULTIPLIER 0.09 /**< Multiplier for exp per level */
 #define LEVEL_EXP_MULTIPLIER_SQR 12 /**< Square of the multiplier for exp per level */
@@ -545,6 +547,8 @@
 /* PFILE VERSION */
 #define PFILE_VERSION 2
 
+/* Container-related defines */
+#define GET_CONTAINER_MAX_SLOTS(obj) (GET_OBJ_VAL((obj), 0))
 
 /* Container flags - value[1] */
 #define CONT_CLOSEABLE      (1 << 0)	/**< Container can be closed	*/

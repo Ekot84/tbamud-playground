@@ -61,9 +61,9 @@ static void perform_put(struct char_data *ch, struct obj_data *obj, struct obj_d
   if (!has_obj_by_uid_in_lookup_table(object_id)) /* object might be extracted by drop_otrigger */
     return;
 
-  /* Check if container has max slots defined and is full */
-  if (GET_OBJ_VAL(cont, 4) > 0 &&
-      compute_container_slots(cont) >= GET_OBJ_VAL(cont, 4)) {
+  /* Slot limit check using value[0] as max slots */
+  if (GET_OBJ_VAL(cont, 0) != -1 &&
+      compute_container_slots(cont) >= GET_OBJ_VAL(cont, 0)) {
     act("$P cannot hold any more items.", FALSE, ch, obj, cont, TO_CHAR);
     return;
   }
@@ -80,15 +80,14 @@ static void perform_put(struct char_data *ch, struct obj_data *obj, struct obj_d
 
   act("$n puts $p in $P.", TRUE, ch, obj, cont, TO_ROOM);
 
-  /* Optional: mark container as NODROP if putting a NODROP item inside */
   if (OBJ_FLAGGED(obj, ITEM_NODROP) && !OBJ_FLAGGED(cont, ITEM_NODROP)) {
     SET_BIT_AR(GET_OBJ_EXTRA(cont), ITEM_NODROP);
-    act("You get a strange feeling as you put $p in $P.", FALSE,
-        ch, obj, cont, TO_CHAR);
+    act("You get a strange feeling as you put $p in $P.", FALSE, ch, obj, cont, TO_CHAR);
   } else {
     act("You put $p in $P.", FALSE, ch, obj, cont, TO_CHAR);
   }
 }
+
 
 
 /* The following put modes are supported:

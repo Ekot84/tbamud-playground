@@ -97,8 +97,12 @@
 #define SPELL_ARCANE_MYST            56 /* Mana per combat tick */
 #define SPELL_ENDURANCE_MYST         57 /* Stamina per combat tick */
 #define SPELL_REGEN                  58 /* Regeneration of health, mana and stamina per tick */
+#define SPELL_HEAL_PERCENT           59 /* Heal a percentage of max health */
+#define SPELL_MANA_PERCENT           60 /* Heal a percentage of max mana */
+#define SPELL_STAMINA_PERCENT        61 /* Heal a percentage of max stamina */
+
 /** Total Number of defined spells */
-#define NUM_SPELLS                   58
+#define NUM_SPELLS                   61
 
 /* Insert new spells here, up to MAX_SPELLS */
 #define MAX_SPELLS		    130
@@ -226,6 +230,7 @@ ASPELL(spell_information);
 ASPELL(spell_identify);
 ASPELL(spell_enchant_weapon);
 ASPELL(spell_detect_poison);
+ASPELL(spell_heal_percent);
 
 /* basic magic calling functions */
 

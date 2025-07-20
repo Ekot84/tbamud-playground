@@ -498,8 +498,10 @@ const char *extra_bits[] = {
   "ANTI_WARRIOR",
   "NO_SELL",
   "QUEST_ITEM",
-  "UNIQUE",
-  "NO_MAIL",
+  "UNIQUE", /* Item is a unique save item */
+  "NO_MAIL", /* Item cannot be mailed */
+  "NO_SLOT", /* Item does not count towards inventory slots */
+  "STACKABLE", /* Item is stackable, like a pile of gold coins */
   "\n"
 };
 
