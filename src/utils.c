@@ -23,7 +23,11 @@
 #include "interpreter.h"
 #include "class.h"
 #include "genolc.h"
+#include "cJSON.h"
+#include <sys/stat.h>
 
+
+#define MAX_PERSIST_OBJS 1000
 
 /** Aportable random number function.
  * @param from The lower bounds of the random number.
@@ -1743,7 +1747,7 @@ bool should_persist_object(struct obj_data *obj) {
  * contained objects if it is a container.
  * @param fp The file pointer to write the object data to.
  * @param obj The object to save.
- * @param container_rnum The room number of the container, or -1 if not in a container.
+ * @param container_rnum The index of the container in the load list, or -1 if not in a container.
  */
 void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum) {
   char name_buf[MAX_INPUT_LENGTH], short_buf[MAX_INPUT_LENGTH], desc_buf[MAX_INPUT_LENGTH];
@@ -1781,197 +1785,195 @@ void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum) {
 }
 
 /**
- * Save objects in a persistent room to a file.
- * This function iterates through all objects in the specified room and saves
- * them to a file, including their contained objects.
- * @param vnum The virtual number of the room to save objects from.
+ * Saves persistent objects in a room to a JSON file.
  */
 void room_save_objects(room_vnum vnum) {
   FILE *fp;
-  struct obj_data *obj, *contained;
-  int room = real_room(vnum);
   char filename[256];
-
+  int room = real_room(vnum);
   if (room == NOWHERE)
     return;
 
-  snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, vnum);
-
+  snprintf(filename, sizeof(filename), "%sroom_%d.json", PERSISTENT_PATH, vnum);
   fp = fopen(filename, "w");
-  if (!fp) {
-    log("SYSERR: Could not open %s for writing persistent room data.", filename);
+  if (!fp)
     return;
-  }
 
-  mudlog(BRF, LVL_IMPL, TRUE, ">> Saving objects in room %d", vnum);
+  cJSON *root = cJSON_CreateArray();
 
-  for (obj = world[room].contents; obj; obj = obj->next_content) {
-    if (!should_persist_object(obj))
-      continue;
+  for (struct obj_data *obj = world[room].contents; obj; obj = obj->next_content) {
+    if (!should_persist_object(obj)) continue;
 
-    save_object_to_file(fp, obj, -1); // Not in any container
+    cJSON *json_obj = cJSON_CreateObject();
+    cJSON_AddNumberToObject(json_obj, "vnum", GET_OBJ_VNUM(obj));
+    cJSON_AddStringToObject(json_obj, "name", obj->name ?: "undefined");
+    cJSON_AddStringToObject(json_obj, "short", obj->short_description ?: "undefined");
+    cJSON_AddStringToObject(json_obj, "desc", obj->description ?: "undefined");
+    cJSON_AddNumberToObject(json_obj, "type", GET_OBJ_TYPE(obj));
+    cJSON_AddNumberToObject(json_obj, "weight", GET_OBJ_WEIGHT(obj));
+    cJSON_AddNumberToObject(json_obj, "cost", GET_OBJ_COST(obj));
+    cJSON_AddNumberToObject(json_obj, "timer", GET_OBJ_TIMER(obj));
+    cJSON_AddNumberToObject(json_obj, "level", obj->obj_flags.level);
 
-    if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER) {
-      for (contained = obj->contains; contained; contained = contained->next_content) {
-        if (GET_OBJ_TYPE(contained) == ITEM_CONTAINER) {
-          mudlog(CMP, LVL_IMPL, TRUE, "save_object_to_file: Skipping nested container [%d] in [%d]",
-                 GET_OBJ_VNUM(contained), GET_OBJ_VNUM(obj));
-          continue;
-        }
-        save_object_to_file(fp, contained, GET_OBJ_RNUM(obj));
+    cJSON *val = cJSON_CreateIntArray(&(obj->obj_flags.value[0]), 4);
+    cJSON *extra = cJSON_CreateIntArray(GET_OBJ_EXTRA(obj), 4);
+    cJSON *wear = cJSON_CreateIntArray(GET_OBJ_WEAR(obj), 4);
+    cJSON_AddItemToObject(json_obj, "val", val);
+    cJSON_AddItemToObject(json_obj, "extra", extra);
+    cJSON_AddItemToObject(json_obj, "wear", wear);
+
+    if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && obj->contains) {
+      cJSON *contents = cJSON_CreateArray();
+      for (struct obj_data *cont = obj->contains; cont; cont = cont->next_content) {
+        if (!should_persist_object(cont)) continue;
+        cJSON *json_cont = cJSON_CreateObject();
+        cJSON_AddNumberToObject(json_cont, "vnum", GET_OBJ_VNUM(cont));
+        cJSON_AddStringToObject(json_cont, "name", cont->name ?: "undefined");
+        cJSON_AddStringToObject(json_cont, "short", cont->short_description ?: "undefined");
+        cJSON_AddStringToObject(json_cont, "desc", cont->description ?: "undefined");
+        cJSON_AddNumberToObject(json_cont, "type", GET_OBJ_TYPE(cont));
+        cJSON_AddNumberToObject(json_cont, "weight", GET_OBJ_WEIGHT(cont));
+        cJSON_AddNumberToObject(json_cont, "cost", GET_OBJ_COST(cont));
+        cJSON_AddNumberToObject(json_cont, "timer", GET_OBJ_TIMER(cont));
+        cJSON_AddNumberToObject(json_cont, "level", cont->obj_flags.level);
+
+        cJSON *v2 = cJSON_CreateIntArray(&(cont->obj_flags.value[0]), 4);
+        cJSON *e2 = cJSON_CreateIntArray(GET_OBJ_EXTRA(cont), 4);
+        cJSON *w2 = cJSON_CreateIntArray(GET_OBJ_WEAR(cont), 4);
+        cJSON_AddItemToObject(json_cont, "val", v2);
+        cJSON_AddItemToObject(json_cont, "extra", e2);
+        cJSON_AddItemToObject(json_cont, "wear", w2);
+
+        cJSON_AddItemToArray(contents, json_cont);
       }
+      cJSON_AddItemToObject(json_obj, "contents", contents);
     }
+
+    cJSON_AddItemToArray(root, json_obj);
   }
 
-  fprintf(fp, "$\n");
+  char *out = cJSON_Print(root);
+  fprintf(fp, "%s", out);
   fclose(fp);
-  mudlog(CMP, LVL_IMMORT, TRUE, "Persistent room saved: %d", vnum);
-}
+
+  free(out);
+  cJSON_Delete(root);
+}  
+
 
 /**
- * Load objects from a persistent room file.
- * This function reads the object data from a file and places them in the specified room.
- * @param vnum The virtual number of the room to load objects into.
+ * Loads persistent objects from a JSON file into a room.
  */
 void room_load_objects(room_vnum vnum) {
   FILE *fp;
-  char filename[256], line[256];
-  int vnum_read, val[4], extra[4], wear[4], type, weight, cost, timer, level, in_container;
-  char name[MAX_INPUT_LENGTH], short_desc[MAX_INPUT_LENGTH], desc[MAX_INPUT_LENGTH];
-  struct obj_data *proto, *obj;
-  struct obj_data *loaded_objs[1000]; // temp buffer
-  int loaded_rnums[1000];
-  int obj_count = 0;
+  char filename[256];
   int room = real_room(vnum);
+  struct stat st;
 
   if (room == NOWHERE)
     return;
 
-  snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, vnum);
-  if (!(fp = fopen(filename, "r")))
+  snprintf(filename, sizeof(filename), "%sroom_%d.json", PERSISTENT_PATH, vnum);
+  if (stat(filename, &st) != 0)
     return;
 
-  while (fgets(line, sizeof(line), fp)) {
-    if (line[0] == '#') {
-      vnum_read = atoi(line + 1);
-      if (vnum_read <= 0) {
-        mudlog(CMP, LVL_IMPL, TRUE, "room_load_objects: Skipping invalid object vnum #%d in room %d", vnum_read, vnum);
-        continue;
-      }
+  fp = fopen(filename, "r");
+  if (!fp)
+    return;
 
-      proto = read_object(vnum_read, VIRTUAL);
-      if (!proto) {
-        mudlog(CMP, LVL_IMPL, TRUE, "room_load_objects: Failed to load object #%d in room %d", vnum_read, vnum);
-        continue;
-      }
+  fseek(fp, 0, SEEK_END);
+  long len = ftell(fp);
+  rewind(fp);
 
-      if (!fgets(line, sizeof(line), fp)) break;
-      strip_crlf(line);
-      if (strncmp(line, "Name: ", 6)) continue;
-      strlcpy(name, line + 6, sizeof(name));
-      strip_crlf(name);
-      strip_end_marker(name);
-      strip_tilde(name);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      strip_crlf(line);
-      if (strncmp(line, "Short: ", 7)) continue;
-      strlcpy(short_desc, line + 7, sizeof(short_desc));
-      strip_crlf(short_desc);
-      strip_end_marker(short_desc);
-      strip_tilde(short_desc);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      strip_crlf(line);
-      if (strncmp(line, "Desc: ", 6)) continue;
-      strlcpy(desc, line + 6, sizeof(desc));
-      strip_crlf(desc);
-      strip_end_marker(desc);
-      strip_tilde(desc);
-
-      if (*name == '\0') strlcpy(name, "undefined", sizeof(name));
-      if (*short_desc == '\0') strlcpy(short_desc, "undefined", sizeof(short_desc));
-      if (*desc == '\0') strlcpy(desc, "undefined", sizeof(desc));
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Type: %d", &type);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Extra: %d %d %d %d", &extra[0], &extra[1], &extra[2], &extra[3]);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Wear: %d %d %d %d", &wear[0], &wear[1], &wear[2], &wear[3]);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Weight: %d", &weight);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Cost: %d", &cost);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Timer: %d", &timer);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Level: %d", &level);
-
-      if (!fgets(line, sizeof(line), fp)) break;
-      sscanf(line, "Val: %d %d %d %d", &val[0], &val[1], &val[2], &val[3]);
-
-      in_container = -1;
-      while (fgets(line, sizeof(line), fp)) {
-        strip_crlf(line);
-        if (strncmp(line, "InContainer: ", 13) == 0) {
-          in_container = atoi(line + 13);
-        } else if (strncmp(line, "End", 3) == 0) {
-          break;
-        }
-      }
-
-      obj = create_obj();
-      memcpy(obj, proto, sizeof(struct obj_data));
-      obj->name = strdup(name);
-      obj->short_description = strdup(short_desc);
-      obj->description = strdup(desc);
-      GET_OBJ_TYPE(obj) = type;
-      GET_OBJ_WEIGHT(obj) = weight;
-      GET_OBJ_COST(obj) = cost;
-      GET_OBJ_TIMER(obj) = timer;
-      obj->obj_flags.level = level;
-
-      for (int i = 0; i < 4; i++) {
-        GET_OBJ_VAL(obj, i) = val[i];
-        GET_OBJ_EXTRA(obj)[i] = extra[i];
-        GET_OBJ_WEAR(obj)[i] = wear[i];
-      }
-
-      loaded_objs[obj_count] = obj;
-      loaded_rnums[obj_count] = in_container;
-      obj_count++;
-    } else if (line[0] == '$') {
-      break;
-    }
+  char *buffer = malloc(len + 1);
+  if (fread(buffer, 1, len, fp) != len) {
+    fclose(fp);
+    free(buffer);
+    log("SYSERR: Failed to read full JSON room file for room %d", vnum);
+    return;
   }
-
-  // Link all objects
-  for (int i = 0; i < obj_count; i++) {
-    if (loaded_rnums[i] == -1) {
-      obj_to_room(loaded_objs[i], room);
-    } else {
-      int found = 0;
-      for (int j = 0; j < obj_count; j++) {
-        if (GET_OBJ_RNUM(loaded_objs[j]) == loaded_rnums[i]) {
-          obj_to_obj(loaded_objs[i], loaded_objs[j]);
-          found = 1;
-          break;
-        }
-      }
-      if (!found) {
-        obj_to_room(loaded_objs[i], room);
-      }
-    }
-  }
-
+  buffer[len] = '\0';
   fclose(fp);
+
+  cJSON *root = cJSON_Parse(buffer);
+  free(buffer);
+  if (!root || !cJSON_IsArray(root)) {
+    cJSON_Delete(root);
+    return;
+  }
+
+  int obj_count = cJSON_GetArraySize(root);
+
+  for (int i = 0; i < obj_count && i < MAX_PERSIST_OBJS; i++) {
+    cJSON *json_obj = cJSON_GetArrayItem(root, i);
+    if (!cJSON_IsObject(json_obj)) continue;
+
+    cJSON *v = cJSON_GetObjectItem(json_obj, "vnum");
+    if (!cJSON_IsNumber(v)) continue;
+
+    struct obj_data *proto = read_object(v->valueint, VIRTUAL);
+    if (!proto) continue;
+
+    struct obj_data *obj = create_obj();
+    memcpy(obj, proto, sizeof(struct obj_data));
+
+    obj->name = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(json_obj, "name")) ?: "undefined");
+    obj->short_description = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(json_obj, "short")) ?: "undefined");
+    obj->description = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(json_obj, "desc")) ?: "undefined");
+
+    GET_OBJ_TYPE(obj) = cJSON_GetObjectItem(json_obj, "type")->valueint;
+    GET_OBJ_WEIGHT(obj) = cJSON_GetObjectItem(json_obj, "weight")->valueint;
+    GET_OBJ_COST(obj) = cJSON_GetObjectItem(json_obj, "cost")->valueint;
+    GET_OBJ_TIMER(obj) = cJSON_GetObjectItem(json_obj, "timer")->valueint;
+    obj->obj_flags.level = cJSON_GetObjectItem(json_obj, "level")->valueint;
+
+    cJSON *val = cJSON_GetObjectItem(json_obj, "val");
+    cJSON *extra = cJSON_GetObjectItem(json_obj, "extra");
+    cJSON *wear = cJSON_GetObjectItem(json_obj, "wear");
+
+    for (int j = 0; j < 4; j++) {
+      GET_OBJ_VAL(obj, j) = cJSON_GetArrayItem(val, j)->valueint;
+      GET_OBJ_EXTRA(obj)[j] = cJSON_GetArrayItem(extra, j)->valueint;
+      GET_OBJ_WEAR(obj)[j] = cJSON_GetArrayItem(wear, j)->valueint;
+    }
+
+    // Handle contained objects
+    cJSON *contents = cJSON_GetObjectItem(json_obj, "contents");
+    if (cJSON_IsArray(contents)) {
+      for (cJSON *child = contents->child; child; child = child->next) {
+        struct obj_data *contained = read_object(cJSON_GetObjectItem(child, "vnum")->valueint, VIRTUAL);
+        if (!contained) continue;
+        struct obj_data *child_obj = create_obj();
+        memcpy(child_obj, contained, sizeof(struct obj_data));
+
+        child_obj->name = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(child, "name")) ?: "undefined");
+        child_obj->short_description = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(child, "short")) ?: "undefined");
+        child_obj->description = strdup(cJSON_GetStringValue(cJSON_GetObjectItem(child, "desc")) ?: "undefined");
+
+        GET_OBJ_TYPE(child_obj) = cJSON_GetObjectItem(child, "type")->valueint;
+        GET_OBJ_WEIGHT(child_obj) = cJSON_GetObjectItem(child, "weight")->valueint;
+        GET_OBJ_COST(child_obj) = cJSON_GetObjectItem(child, "cost")->valueint;
+        GET_OBJ_TIMER(child_obj) = cJSON_GetObjectItem(child, "timer")->valueint;
+        child_obj->obj_flags.level = cJSON_GetObjectItem(child, "level")->valueint;
+
+        cJSON *v2 = cJSON_GetObjectItem(child, "val");
+        cJSON *e2 = cJSON_GetObjectItem(child, "extra");
+        cJSON *w2 = cJSON_GetObjectItem(child, "wear");
+
+        for (int j = 0; j < 4; j++) {
+          GET_OBJ_VAL(child_obj, j) = cJSON_GetArrayItem(v2, j)->valueint;
+          GET_OBJ_EXTRA(child_obj)[j] = cJSON_GetArrayItem(e2, j)->valueint;
+          GET_OBJ_WEAR(child_obj)[j] = cJSON_GetArrayItem(w2, j)->valueint;
+        }
+
+        obj_to_obj(child_obj, obj);
+      }
+    }
+
+    obj_to_room(obj, room);
+  }
+
+  cJSON_Delete(root);
 }
 
 /**
