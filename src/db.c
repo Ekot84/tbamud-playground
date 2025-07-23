@@ -750,6 +750,9 @@ void boot_db(void)
 
   boot_world();
 
+  log("Loading persistent room data...");
+  load_persistent_rooms();
+
   htree_test();
 
   log("Loading help entries.");

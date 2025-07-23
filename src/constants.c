@@ -88,6 +88,7 @@ const char *room_bits[] = {
   "MOVE_DRAIN",    /* Room drains movement points */
   "NO_RECALL",      /* Room does not allow recall spells */
   "FASTREGEN",    /* Room regenerates health/mana/stamina faster */
+  "PERSISTENT",    /* Room persists across resets, not cleared on reset */
   "\n"
 };
 
@@ -502,6 +503,7 @@ const char *extra_bits[] = {
   "NO_MAIL", /* Item cannot be mailed */
   "NO_SLOT", /* Item does not count towards inventory slots */
   "STACKABLE", /* Item is stackable, like a pile of gold coins */
+  "NO_PERSIST", /* Item is not persistent, does not persist across resets */
   "\n"
 };
 

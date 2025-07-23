@@ -92,8 +92,9 @@
 #define ROOM_MOVE_DRAIN    19 /**< Room drains movement points */
 #define ROOM_NO_RECALL     20 /**< Room does not allow recall spells */
 #define ROOM_FASTREGEN     21 /**< Room regenerates health/mana/stamina faster than normal */
+#define ROOM_PERSISTENT    22 /**< Room persists across resets, not cleared on reset */
 /** The total number of Room Flags */
-#define NUM_ROOM_FLAGS     22
+#define NUM_ROOM_FLAGS     23
 
 /* Zone info: Used in zone_data.zone_flags */
 #define ZONE_CLOSED       0  /**< Zone is closed - players cannot enter */
@@ -498,8 +499,9 @@
 #define ITEM_NOMAIL           19   /**< Item cannot be mailed */
 #define ITEM_NOSLOT           20   /**< Item cannot is not counted in inventory slots */
 #define ITEM_STACKABLE        21	 /**< Item is stackable, like a pile of gold coins */
+#define ITEM_NO_PERSIST       22   /**< Item is not persistent, does not persist across resets */
 /** Total number of item flags */
-#define NUM_ITEM_FLAGS    22
+#define NUM_ITEM_FLAGS    23
 
 /* Modifier constants used with obj affects ('A' fields) */
 #define APPLY_NONE              0	/**< No effect			*/
@@ -546,6 +548,9 @@
 
 /* PFILE VERSION */
 #define PFILE_VERSION 2
+
+/* Persistent room defines */
+#define MAX_PERSISTENT_ROOMS 32000
 
 /* Container-related defines */
 #define GET_CONTAINER_MAX_SLOTS(obj) (GET_OBJ_VAL((obj), 0))

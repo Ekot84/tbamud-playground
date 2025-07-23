@@ -2552,6 +2552,7 @@ ACMD(do_show)
     { "exp",        LVL_IMMORT },
     { "colour",     LVL_IMMORT },
     { "uniques",        LVL_GRGOD},
+    { "persistent", LVL_IMMORT },   /* 15 */
     { "\n", 0 }
   };
 
@@ -2854,7 +2855,11 @@ ACMD(do_show)
      strp = sprintuniques(low, high);
      page_string(ch->desc, strp, TRUE);
      free(strp);
-     break;      
+     break;
+    
+  case 15:
+    show_persistent_rooms(ch);
+    break;
 
   /* show what? */
   default:

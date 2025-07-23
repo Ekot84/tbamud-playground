@@ -693,6 +693,10 @@ void obj_to_room(struct obj_data *object, room_rnum room)
     object->carried_by = NULL;
     if (ROOM_FLAGGED(room, ROOM_HOUSE))
       SET_BIT_AR(ROOM_FLAGS(room), ROOM_HOUSE_CRASH);
+
+    /*  If the room is persistent, mark it dirty so it will be saved. */  
+    if (ROOM_FLAGGED(room, ROOM_PERSISTENT))
+      mark_room_dirty(world[room].number);  // world[].number = real VNUM
   }
 }
 
@@ -721,6 +725,11 @@ void obj_from_room(struct obj_data *object)
 
   if (ROOM_FLAGGED(IN_ROOM(object), ROOM_HOUSE))
     SET_BIT_AR(ROOM_FLAGS(IN_ROOM(object)), ROOM_HOUSE_CRASH);
+
+  /*  If the room is persistent, mark it dirty so it will be saved. */  
+  if (ROOM_FLAGGED(IN_ROOM(object), ROOM_PERSISTENT))
+    mark_room_dirty(world[IN_ROOM(object)].number);
+    
   IN_ROOM(object) = NOWHERE;
   object->next_content = NULL;
 }

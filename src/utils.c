@@ -22,6 +22,7 @@
 #include "handler.h"
 #include "interpreter.h"
 #include "class.h"
+#include "genolc.h"
 
 
 /** Aportable random number function.
@@ -1666,3 +1667,381 @@ int get_crit_damage(struct char_data *ch) {
   return mod;
 }
 
+bool room_dirty[MAX_PERSISTENT_ROOMS] = { FALSE };
+
+/**
+ * Marks a room as dirty, indicating that it has been modified and needs to be saved.
+ * This function sets the corresponding entry in the room_dirty array to TRUE
+ * for the specified room virtual number.
+ * @param vnum The virtual number of the room to mark as dirty.
+ */
+void mark_room_dirty(room_vnum vnum) {
+  if (vnum >= 0 && vnum < MAX_PERSISTENT_ROOMS) {
+    room_dirty[vnum] = TRUE;
+    mudlog(BRF, LVL_IMPL, TRUE, ">> Marked room %d as dirty", vnum);
+    room_save_objects(vnum);
+  }
+}
+
+/**
+ * Save all dirty persistent rooms.
+ * This function iterates through all persistent rooms and saves those that
+ * have been marked as dirty.
+ */
+void room_save_dirty_rooms(void) {
+  for (int i = 0; i <= top_of_world; i++) {
+    room_vnum vnum = world[i].number;
+
+    if (ROOM_FLAGGED(i, ROOM_PERSISTENT) && room_dirty[vnum]) {
+      room_save_objects(vnum);
+      mudlog(CMP, LVL_IMMORT, TRUE, "Dirty save room called for: %d", vnum);
+      room_dirty[vnum] = FALSE;
+    }
+  }
+}
+
+/**
+ * Load all persistent rooms and their objects.
+ * This function iterates through all rooms in the world and loads objects
+ * for those marked as persistent.
+ */
+void load_persistent_rooms(void) {
+  for (room_rnum i = 0; i <= top_of_world; i++) {
+    if (ROOM_FLAGGED(i, ROOM_PERSISTENT))
+      room_load_objects(world[i].number);  // world[i].number = real vnum
+  }
+}
+
+/**
+ * Determines if an object should be persisted.
+ * This function checks the object's type, flags, and other properties to
+ * decide if it should be saved in persistent storage.
+ * @param obj The object to check for persistence.
+ * @return TRUE if the object should be persisted, FALSE otherwise.
+ */
+bool should_persist_object(struct obj_data *obj) {
+  if (!obj)
+    return FALSE;
+
+   mudlog(BRF, LVL_IMPL, TRUE, "Checking persist: %s (flags: %d)", 
+         obj->short_description ? obj->short_description : "<null>", 
+         GET_OBJ_EXTRA(obj)[0]);
+  // Skip corpses
+  if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && GET_OBJ_VAL(obj, 3) == 1)
+    return FALSE;
+
+  // Skip flagged objects
+  if (OBJ_FLAGGED(obj, ITEM_NO_PERSIST))
+    return FALSE;
+
+  return TRUE;
+}
+
+/**
+ * Saves an object to a file in a persistent format.
+ * This function writes the object's properties to a file, including its
+ * contained objects if it is a container.
+ * @param fp The file pointer to write the object data to.
+ * @param obj The object to save.
+ * @param container_rnum The room number of the container, or -1 if not in a container.
+ */
+void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum) {
+  char name_buf[MAX_INPUT_LENGTH], short_buf[MAX_INPUT_LENGTH], desc_buf[MAX_INPUT_LENGTH];
+
+  strlcpy(name_buf, obj->name ? obj->name : "undefined", sizeof(name_buf));
+  strlcpy(short_buf, obj->short_description ? obj->short_description : "undefined", sizeof(short_buf));
+  strlcpy(desc_buf, obj->description ? obj->description : "undefined", sizeof(desc_buf));
+  strip_crlf(name_buf);
+  strip_crlf(short_buf);
+  strip_crlf(desc_buf);
+
+  fprintf(fp, "#%d\n", GET_OBJ_VNUM(obj));
+  fprintf(fp, "Name: %s<END>\n", name_buf);
+  fprintf(fp, "Short: %s<END>\n", short_buf);
+  fprintf(fp, "Desc: %s<END>\n", desc_buf);
+  fprintf(fp, "Type: %d\n", GET_OBJ_TYPE(obj));
+  fprintf(fp, "Extra: %d %d %d %d\n",
+          GET_OBJ_EXTRA(obj)[0], GET_OBJ_EXTRA(obj)[1],
+          GET_OBJ_EXTRA(obj)[2], GET_OBJ_EXTRA(obj)[3]);
+  fprintf(fp, "Wear: %d %d %d %d\n",
+          GET_OBJ_WEAR(obj)[0], GET_OBJ_WEAR(obj)[1],
+          GET_OBJ_WEAR(obj)[2], GET_OBJ_WEAR(obj)[3]);
+  fprintf(fp, "Weight: %d\n", GET_OBJ_WEIGHT(obj));
+  fprintf(fp, "Cost: %d\n", GET_OBJ_COST(obj));
+  fprintf(fp, "Timer: %d\n", GET_OBJ_TIMER(obj));
+  fprintf(fp, "Level: %d\n", obj->obj_flags.level);
+  fprintf(fp, "Val: %d %d %d %d\n",
+          GET_OBJ_VAL(obj, 0), GET_OBJ_VAL(obj, 1),
+          GET_OBJ_VAL(obj, 2), GET_OBJ_VAL(obj, 3));
+
+  if (container_rnum >= 0)
+    fprintf(fp, "InContainer: %d\n", container_rnum);
+
+  fprintf(fp, "End\n");
+}
+
+/**
+ * Save objects in a persistent room to a file.
+ * This function iterates through all objects in the specified room and saves
+ * them to a file, including their contained objects.
+ * @param vnum The virtual number of the room to save objects from.
+ */
+void room_save_objects(room_vnum vnum) {
+  FILE *fp;
+  struct obj_data *obj, *contained;
+  int room = real_room(vnum);
+  char filename[256];
+
+  if (room == NOWHERE)
+    return;
+
+  snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, vnum);
+
+  fp = fopen(filename, "w");
+  if (!fp) {
+    log("SYSERR: Could not open %s for writing persistent room data.", filename);
+    return;
+  }
+
+  mudlog(BRF, LVL_IMPL, TRUE, ">> Saving objects in room %d", vnum);
+
+  for (obj = world[room].contents; obj; obj = obj->next_content) {
+    if (!should_persist_object(obj))
+      continue;
+
+    save_object_to_file(fp, obj, -1); // Not in any container
+
+    if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER) {
+      for (contained = obj->contains; contained; contained = contained->next_content) {
+        if (GET_OBJ_TYPE(contained) == ITEM_CONTAINER) {
+          mudlog(CMP, LVL_IMPL, TRUE, "save_object_to_file: Skipping nested container [%d] in [%d]",
+                 GET_OBJ_VNUM(contained), GET_OBJ_VNUM(obj));
+          continue;
+        }
+        save_object_to_file(fp, contained, GET_OBJ_RNUM(obj));
+      }
+    }
+  }
+
+  fprintf(fp, "$\n");
+  fclose(fp);
+  mudlog(CMP, LVL_IMMORT, TRUE, "Persistent room saved: %d", vnum);
+}
+
+/**
+ * Load objects from a persistent room file.
+ * This function reads the object data from a file and places them in the specified room.
+ * @param vnum The virtual number of the room to load objects into.
+ */
+void room_load_objects(room_vnum vnum) {
+  FILE *fp;
+  char filename[256], line[256];
+  int vnum_read, val[4], extra[4], wear[4], type, weight, cost, timer, level, in_container;
+  char name[MAX_INPUT_LENGTH], short_desc[MAX_INPUT_LENGTH], desc[MAX_INPUT_LENGTH];
+  struct obj_data *proto, *obj;
+  struct obj_data *loaded_objs[1000]; // temp buffer
+  int loaded_rnums[1000];
+  int obj_count = 0;
+  int room = real_room(vnum);
+
+  if (room == NOWHERE)
+    return;
+
+  snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, vnum);
+  if (!(fp = fopen(filename, "r")))
+    return;
+
+  while (fgets(line, sizeof(line), fp)) {
+    if (line[0] == '#') {
+      vnum_read = atoi(line + 1);
+      if (vnum_read <= 0) {
+        mudlog(CMP, LVL_IMPL, TRUE, "room_load_objects: Skipping invalid object vnum #%d in room %d", vnum_read, vnum);
+        continue;
+      }
+
+      proto = read_object(vnum_read, VIRTUAL);
+      if (!proto) {
+        mudlog(CMP, LVL_IMPL, TRUE, "room_load_objects: Failed to load object #%d in room %d", vnum_read, vnum);
+        continue;
+      }
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      strip_crlf(line);
+      if (strncmp(line, "Name: ", 6)) continue;
+      strlcpy(name, line + 6, sizeof(name));
+      strip_crlf(name);
+      strip_end_marker(name);
+      strip_tilde(name);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      strip_crlf(line);
+      if (strncmp(line, "Short: ", 7)) continue;
+      strlcpy(short_desc, line + 7, sizeof(short_desc));
+      strip_crlf(short_desc);
+      strip_end_marker(short_desc);
+      strip_tilde(short_desc);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      strip_crlf(line);
+      if (strncmp(line, "Desc: ", 6)) continue;
+      strlcpy(desc, line + 6, sizeof(desc));
+      strip_crlf(desc);
+      strip_end_marker(desc);
+      strip_tilde(desc);
+
+      if (*name == '\0') strlcpy(name, "undefined", sizeof(name));
+      if (*short_desc == '\0') strlcpy(short_desc, "undefined", sizeof(short_desc));
+      if (*desc == '\0') strlcpy(desc, "undefined", sizeof(desc));
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Type: %d", &type);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Extra: %d %d %d %d", &extra[0], &extra[1], &extra[2], &extra[3]);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Wear: %d %d %d %d", &wear[0], &wear[1], &wear[2], &wear[3]);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Weight: %d", &weight);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Cost: %d", &cost);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Timer: %d", &timer);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Level: %d", &level);
+
+      if (!fgets(line, sizeof(line), fp)) break;
+      sscanf(line, "Val: %d %d %d %d", &val[0], &val[1], &val[2], &val[3]);
+
+      in_container = -1;
+      while (fgets(line, sizeof(line), fp)) {
+        strip_crlf(line);
+        if (strncmp(line, "InContainer: ", 13) == 0) {
+          in_container = atoi(line + 13);
+        } else if (strncmp(line, "End", 3) == 0) {
+          break;
+        }
+      }
+
+      obj = create_obj();
+      memcpy(obj, proto, sizeof(struct obj_data));
+      obj->name = strdup(name);
+      obj->short_description = strdup(short_desc);
+      obj->description = strdup(desc);
+      GET_OBJ_TYPE(obj) = type;
+      GET_OBJ_WEIGHT(obj) = weight;
+      GET_OBJ_COST(obj) = cost;
+      GET_OBJ_TIMER(obj) = timer;
+      obj->obj_flags.level = level;
+
+      for (int i = 0; i < 4; i++) {
+        GET_OBJ_VAL(obj, i) = val[i];
+        GET_OBJ_EXTRA(obj)[i] = extra[i];
+        GET_OBJ_WEAR(obj)[i] = wear[i];
+      }
+
+      loaded_objs[obj_count] = obj;
+      loaded_rnums[obj_count] = in_container;
+      obj_count++;
+    } else if (line[0] == '$') {
+      break;
+    }
+  }
+
+  // Link all objects
+  for (int i = 0; i < obj_count; i++) {
+    if (loaded_rnums[i] == -1) {
+      obj_to_room(loaded_objs[i], room);
+    } else {
+      int found = 0;
+      for (int j = 0; j < obj_count; j++) {
+        if (GET_OBJ_RNUM(loaded_objs[j]) == loaded_rnums[i]) {
+          obj_to_obj(loaded_objs[i], loaded_objs[j]);
+          found = 1;
+          break;
+        }
+      }
+      if (!found) {
+        obj_to_room(loaded_objs[i], room);
+      }
+    }
+  }
+
+  fclose(fp);
+}
+
+/**
+ * Show all persistent rooms with saved data to a character.
+ * This function lists all persistent rooms and indicates whether they have
+ * saved data or not.
+ * @param ch The character to show the persistent rooms to.
+ */
+void show_persistent_rooms(struct char_data *ch) {
+  int i, count = 0;
+  FILE *fp;
+  char filename[256];
+
+  send_to_char(ch, "\tcPersistent Rooms with saved data:\tn\r\n");
+
+  for (i = 0; i <= top_of_world; i++) {
+    if (ROOM_FLAGGED(i, ROOM_PERSISTENT)) {
+      snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, world[i].number);
+      fp = fopen(filename, "r");
+      if (fp) {
+        fclose(fp);
+        send_to_char(ch, "Room %5d: %s\ty [Saved]\tn\r\n", world[i].number, world[i].name);
+      } else {
+        send_to_char(ch, "Room %5d: %s\tD [No Save File]\tn\r\n", world[i].number, world[i].name);
+      }
+      count++;
+    }
+  }
+
+  if (count == 0)
+    send_to_char(ch, "No persistent rooms found.\r\n");
+  else
+    send_to_char(ch, "\tcTotal persistent rooms: %d\tn\r\n", count);
+}
+
+void strip_tilde(char *str) {
+  size_t len = strlen(str);
+  if (len > 0 && str[len - 1] == '~') {
+    str[len - 1] = '\0';
+  }
+}
+
+char *replace_strdup(char *old, const char *newstr) {
+  if (old)
+    free(old);
+  return (newstr ? strdup(newstr) : NULL);
+}
+
+char *strip_newline(char *s) {
+  char *p = strchr(s, '\n');
+  if (p) *p = '\0';
+  return s;
+}
+
+void strip_crlf(char *buffer) {
+  char *p;
+  while ((p = strpbrk(buffer, "\r\n"))) {
+    *p = '\0';
+  }
+}
+
+void strip_trailing_whitespace(char *buffer) {
+  int len = strlen(buffer);
+  while (len > 0 && (buffer[len - 1] == '\r' || buffer[len - 1] == '\n' || buffer[len - 1] == ' ' || buffer[len - 1] == '\t')) {
+    buffer[--len] = '\0';
+  }
+}
+
+// Helper to strip <END>
+void strip_end_marker(char *str) {
+  char *p = strstr(str, "<END>");
+  if (p) *p = '\0';
+}

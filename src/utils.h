@@ -75,7 +75,20 @@ void remove_from_string(char *string, const char *to_remove);
 void broadcast_game_message(const char *fmt, ...);
 int get_exp_percentage_bonus(struct char_data *ch);
 void kill_add(struct char_data *ch, int vnum, int count, int end);
-
+void room_save_objects(room_vnum vnum);
+void room_load_objects(room_vnum vnum);
+void room_save_dirty_rooms(void);
+void mark_room_dirty(room_vnum vnum);
+bool should_persist_object(struct obj_data *obj);
+void load_persistent_rooms(void);
+void show_persistent_rooms(struct char_data *ch);
+void strip_tilde(char *str);
+char *replace_strdup(char *old, const char *newstr);
+char *strip_newline(char *s);
+void strip_crlf(char *buffer);
+void strip_trailing_whitespace(char *buffer);
+void strip_end_marker(char *str);
+void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum);
 
 /* Public functions made available form weather.c */
 void weather_and_time(int mode);

@@ -682,6 +682,7 @@ void save_char(struct char_data * ch)
   if (GET_ALIGNMENT(ch)  != PFDEF_ALIGNMENT)	fprintf(fl, "Alin: %d\n", GET_ALIGNMENT(ch));
 
 
+  
   sprintascii(bits,  PLR_FLAGS(ch)[0]);
   sprintascii(bits2, PLR_FLAGS(ch)[1]);
   sprintascii(bits3, PLR_FLAGS(ch)[2]);
