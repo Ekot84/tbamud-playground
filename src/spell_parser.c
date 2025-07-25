@@ -881,7 +881,7 @@ spello(SPELL_STAMINA_PERCENT, "stamina percent", 60, 40, 3, 1, POS_FIGHTING,
   TAR_CHAR_ROOM | TAR_OBJ_INV | TAR_OBJ_ROOM, FALSE,
       MAG_UNAFFECTS | MAG_ALTER_OBJS, NULL);
 
-  spello(SPELL_SANCTUARY, "sanctuary", 110, 85, 5, 1, POS_STANDING,
+  spello(SPELL_SANCTUARY, "sanctuary", 110, 85, 120, 180, POS_STANDING,
   TAR_CHAR_ROOM, FALSE, MAG_AFFECTS, "The white aura around your body fades.");
 
   spello(SPELL_SENSE_LIFE, "sense life", 20, 10, 2, 1, POS_STANDING,

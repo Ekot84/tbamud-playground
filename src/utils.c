@@ -1486,6 +1486,9 @@ int get_class_by_name(char *classname)
     return (-1);
 }
 
+/* This function converts tabs in a string to spaces. It is used to
+   convert the input from the player to a format that can be used by
+   the mud. */
 char * convert_from_tabs(char * string)
 {
   static char buf[MAX_STRING_LENGTH * 8];
@@ -1560,6 +1563,11 @@ void remove_from_string(char *string, const char *to_remove)
     
 }
 
+/**
+ * Broadcasts a game message to all players currently playing.
+ * This function formats the message and sends it to all connected players.
+ * @param fmt The format string for the message.
+ */
 void broadcast_game_message(const char *fmt, ...)
 {
   va_list args;
@@ -1742,50 +1750,10 @@ bool should_persist_object(struct obj_data *obj) {
 }
 
 /**
- * Saves an object to a file in a persistent format.
- * This function writes the object's properties to a file, including its
- * contained objects if it is a container.
- * @param fp The file pointer to write the object data to.
- * @param obj The object to save.
- * @param container_rnum The index of the container in the load list, or -1 if not in a container.
- */
-void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum) {
-  char name_buf[MAX_INPUT_LENGTH], short_buf[MAX_INPUT_LENGTH], desc_buf[MAX_INPUT_LENGTH];
-
-  strlcpy(name_buf, obj->name ? obj->name : "undefined", sizeof(name_buf));
-  strlcpy(short_buf, obj->short_description ? obj->short_description : "undefined", sizeof(short_buf));
-  strlcpy(desc_buf, obj->description ? obj->description : "undefined", sizeof(desc_buf));
-  strip_crlf(name_buf);
-  strip_crlf(short_buf);
-  strip_crlf(desc_buf);
-
-  fprintf(fp, "#%d\n", GET_OBJ_VNUM(obj));
-  fprintf(fp, "Name: %s<END>\n", name_buf);
-  fprintf(fp, "Short: %s<END>\n", short_buf);
-  fprintf(fp, "Desc: %s<END>\n", desc_buf);
-  fprintf(fp, "Type: %d\n", GET_OBJ_TYPE(obj));
-  fprintf(fp, "Extra: %d %d %d %d\n",
-          GET_OBJ_EXTRA(obj)[0], GET_OBJ_EXTRA(obj)[1],
-          GET_OBJ_EXTRA(obj)[2], GET_OBJ_EXTRA(obj)[3]);
-  fprintf(fp, "Wear: %d %d %d %d\n",
-          GET_OBJ_WEAR(obj)[0], GET_OBJ_WEAR(obj)[1],
-          GET_OBJ_WEAR(obj)[2], GET_OBJ_WEAR(obj)[3]);
-  fprintf(fp, "Weight: %d\n", GET_OBJ_WEIGHT(obj));
-  fprintf(fp, "Cost: %d\n", GET_OBJ_COST(obj));
-  fprintf(fp, "Timer: %d\n", GET_OBJ_TIMER(obj));
-  fprintf(fp, "Level: %d\n", obj->obj_flags.level);
-  fprintf(fp, "Val: %d %d %d %d\n",
-          GET_OBJ_VAL(obj, 0), GET_OBJ_VAL(obj, 1),
-          GET_OBJ_VAL(obj, 2), GET_OBJ_VAL(obj, 3));
-
-  if (container_rnum >= 0)
-    fprintf(fp, "InContainer: %d\n", container_rnum);
-
-  fprintf(fp, "End\n");
-}
-
-/**
- * Saves persistent objects in a room to a JSON file.
+ * Saves all objects in a room to a JSON file.
+ * This function iterates through all objects in the specified room and
+ * writes their properties to a JSON file named "room_<vnum>.json".
+ * @param vnum The virtual number of the room to save objects from.
  */
 void room_save_objects(room_vnum vnum) {
   FILE *fp;
@@ -1863,6 +1831,9 @@ void room_save_objects(room_vnum vnum) {
 
 /**
  * Loads persistent objects from a JSON file into a room.
+ * This function reads the JSON file corresponding to the room's virtual number
+ * and populates the room with objects defined in that file.
+ * @param vnum The virtual number of the room to load objects into.
  */
 void room_load_objects(room_vnum vnum) {
   FILE *fp;
@@ -1991,7 +1962,7 @@ void show_persistent_rooms(struct char_data *ch) {
 
   for (i = 0; i <= top_of_world; i++) {
     if (ROOM_FLAGGED(i, ROOM_PERSISTENT)) {
-      snprintf(filename, sizeof(filename), "%sroom_%d.obj", PERSISTENT_PATH, world[i].number);
+      snprintf(filename, sizeof(filename), "%sroom_%d.json", PERSISTENT_PATH, world[i].number);
       fp = fopen(filename, "r");
       if (fp) {
         fclose(fp);
@@ -2009,32 +1980,39 @@ void show_persistent_rooms(struct char_data *ch) {
     send_to_char(ch, "\tcTotal persistent rooms: %d\tn\r\n", count);
 }
 
-void strip_tilde(char *str) {
-  size_t len = strlen(str);
-  if (len > 0 && str[len - 1] == '~') {
-    str[len - 1] = '\0';
-  }
-}
-
+/** 
+ * Replaces an old string with a new string, freeing the old one.
+ * This function checks if the old string is not NULL, frees it, and then
+ * duplicates the new string. If the new string is NULL, it returns NULL.
+ * @param old The old string to be replaced.
+ * @param newstr The new string to replace the old one with.
+ * @return A pointer to the new string, or NULL if newstr is NULL.
+ */
 char *replace_strdup(char *old, const char *newstr) {
   if (old)
     free(old);
   return (newstr ? strdup(newstr) : NULL);
 }
 
+/**
+ * Strips the newline character from a string.
+ * This function modifies the input string by replacing the first occurrence
+ * of a newline character with a null terminator.
+ * @param s The string to strip the newline from.
+ * @return The modified string without the newline character.
+ */
 char *strip_newline(char *s) {
   char *p = strchr(s, '\n');
   if (p) *p = '\0';
   return s;
 }
 
-void strip_crlf(char *buffer) {
-  char *p;
-  while ((p = strpbrk(buffer, "\r\n"))) {
-    *p = '\0';
-  }
-}
-
+/**
+ * Strips trailing whitespace from a string.
+ * This function modifies the input buffer by removing any trailing
+ * whitespace characters such as spaces, tabs, and newlines.
+ * @param buffer The string to strip trailing whitespace from.
+ */
 void strip_trailing_whitespace(char *buffer) {
   int len = strlen(buffer);
   while (len > 0 && (buffer[len - 1] == '\r' || buffer[len - 1] == '\n' || buffer[len - 1] == ' ' || buffer[len - 1] == '\t')) {
@@ -2042,8 +2020,26 @@ void strip_trailing_whitespace(char *buffer) {
   }
 }
 
-// Helper to strip <END>
-void strip_end_marker(char *str) {
-  char *p = strstr(str, "<END>");
-  if (p) *p = '\0';
+/**
+ * Formats a duration in seconds into a human-readable string.
+ * This function converts the given number of seconds into a string
+ * representation that includes hours, minutes, and seconds.
+ * @param seconds The duration in seconds to format.
+ * @return A static string containing the formatted duration.
+ */
+const char *format_duration(int seconds)
+{
+  static char buf[64];
+  int hours = seconds / 3600;
+  int minutes = (seconds % 3600) / 60;
+  int secs = seconds % 60;
+
+  if (hours > 0)
+    snprintf(buf, sizeof(buf), "%dh %dm", hours, minutes);
+  else if (minutes > 0)
+    snprintf(buf, sizeof(buf), "%dm %ds", minutes, secs);
+  else
+    snprintf(buf, sizeof(buf), "%ds", secs);
+
+  return buf;
 }

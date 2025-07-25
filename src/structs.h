@@ -1189,7 +1189,7 @@ struct mob_special_data
 struct affected_type
 {
   sh_int spell; /**< The spell that caused this */
-  sh_int duration; /**< For how long its effects will last      */
+  int duration; /**< For how long its effects will last      */
   sbyte modifier;  /**< Added/subtracted to/from apropriate ability     */
   byte location;   /**< Tells which ability to change(APPLY_XXX). */
   int bitvector[AF_ARRAY_MAX]; /**< Tells which bits to set (AFF_XXX). */

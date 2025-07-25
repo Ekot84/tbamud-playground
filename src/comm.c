@@ -993,7 +993,9 @@ void heartbeat(int heart_pulse)
     msdp_update();
     next_tick--;
     update_cooldowns();
+    affect_update();
   }
+
 
   if (!(heart_pulse % PULSE_ZONE))
     zone_update();
@@ -1008,10 +1010,9 @@ void heartbeat(int heart_pulse)
     perform_violence();
 
   if (!(heart_pulse % (SECS_PER_MUD_HOUR * PASSES_PER_SEC))) {  /* Tick ! */
-    next_tick = SECS_PER_MUD_HOUR;  /* Reset tick coundown */
+    next_tick = SECS_PER_MUD_HOUR;  /* Reset tick countdown */
     weather_and_time(1);
     check_time_triggers();
-    affect_update();
     point_update();
     check_timed_quests();
   }

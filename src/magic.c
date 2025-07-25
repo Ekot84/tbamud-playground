@@ -39,29 +39,47 @@ int mag_savingthrow(struct char_data *ch)
   return FALSE;
 }
 
-/* affect_update: called from comm.c (causes spells to wear off) */
+/* affect_update: called from comm.c (runs every second, handles spell wear-offs) */
 void affect_update(void)
 {
   struct affected_type *af, *next;
   struct char_data *i;
 
-  for (i = character_list; i; i = i->next)
+  time_t now = time(0);
+  char timebuf[32];
+  strftime(timebuf, sizeof(timebuf), "%H:%M:%S", localtime(&now));
+
+  for (i = character_list; i; i = i->next) {
     for (af = i->affected; af; af = next) {
       next = af->next;
-      if (af->duration >= 1)
-	af->duration--;
-      else if (af->duration == -1)	/* No action */
-	;
-      else {
-	if ((af->spell > 0) && (af->spell <= MAX_SPELLS))
-	  if (!af->next || (af->next->spell != af->spell) ||
-	      (af->next->duration > 0))
-	    if (spell_info[af->spell].wear_off_msg)
-	      send_to_char(i, "%s\r\n", spell_info[af->spell].wear_off_msg);
-	affect_remove(i, af);
+
+      // Skip permanent effects
+      if (af->duration == -1)
+        continue;
+
+      // Decrease duration (now in seconds)
+      if (af->duration > 0) {
+        af->duration--;
+        continue;
       }
+
+      // Time's up: remove affect and show wear-off message
+      if (af->spell > 0 && af->spell <= MAX_SPELLS) {
+        if (!af->next || af->next->spell != af->spell || af->next->duration > 0) {
+          if (spell_info[af->spell].wear_off_msg)
+            send_to_char(i, "%s\r\n", spell_info[af->spell].wear_off_msg);
+        }
+      }
+
+      affect_remove(i, af);
     }
+  }
 }
+
+
+
+
+
 
 /* Checks for up to 3 vnums (spell reagents) in the player's inventory. If
  * multiple vnums are passed in, the function ANDs the items together as
@@ -492,7 +510,7 @@ void mag_affects(int level, struct char_data *ch, struct char_data *victim,
     break;      
 
   case SPELL_SANCTUARY:
-    af[0].duration = 4;
+    af[0].duration = 120;
     SET_BIT_AR(af[0].bitvector, AFF_SANCTUARY);
 
     accum_duration = TRUE;

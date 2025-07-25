@@ -82,13 +82,11 @@ void mark_room_dirty(room_vnum vnum);
 bool should_persist_object(struct obj_data *obj);
 void load_persistent_rooms(void);
 void show_persistent_rooms(struct char_data *ch);
-void strip_tilde(char *str);
 char *replace_strdup(char *old, const char *newstr);
 char *strip_newline(char *s);
-void strip_crlf(char *buffer);
 void strip_trailing_whitespace(char *buffer);
-void strip_end_marker(char *str);
-void save_object_to_file(FILE *fp, struct obj_data *obj, int container_rnum);
+const char *format_duration(int seconds);
+
 
 /* Public functions made available form weather.c */
 void weather_and_time(int mode);
@@ -190,7 +188,7 @@ void char_from_furniture(struct char_data *ch);
 /** Number of real life seconds per mud hour.
  * @todo The definitions based on SECS_PER_MUD_HOUR should be configurable.
  * See act.informative.c and utils.c for other places to change. */
-#define SECS_PER_MUD_HOUR	75
+#define SECS_PER_MUD_HOUR	60
 /** Real life seconds in one mud day.
  * Current calculation = 30 real life minutes. */
 #define SECS_PER_MUD_DAY	(24*SECS_PER_MUD_HOUR)

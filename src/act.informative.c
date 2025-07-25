@@ -238,14 +238,14 @@ static void diag_char_to_char(struct char_data *i, struct char_data *ch)
     byte percent;
     const char *text;
   } diagnosis[] = {
-    { 100, "is in excellent condition."            },
-    {  90, "has a few scratches."            },
-    {  75, "has some small wounds and bruises."        },
-    {  50, "has quite a few wounds."            },
-    {  30, "has some big nasty wounds and scratches."    },
-    {  15, "looks pretty hurt."                },
-    {   0, "is in awful condition."            },
-    {  -1, "is bleeding awfully from big wounds."    },
+    { 100, "\tGis in excellent condition.\tn"                   }, // Green
+    {  90, "\tF120has a few scratches.\tn"                      }, // Light-Green
+    {  75, "\tF140has some small wounds and bruises.\tn"        }, // Yellow-Green
+    {  50, "\tF220has quite a few wounds.\tn"                   }, // Orange-ish
+    {  30, "\tF400has some big nasty wounds and scratches.\tn"  }, // Red
+    {  15, "\tF420looks pretty hurt.\tn"                        }, // Dark-Red
+    {   0, "\tF500is in awful condition.\tn"                    }, // Dark-Purple
+    {  -1, "\tF550is bleeding awfully from big wounds.\tn"      }, // Red + Yellow
   };
   int percent, ar_index;
   const char *pers = PERS(i, ch);
@@ -1375,31 +1375,26 @@ ACMD(do_time)
   /* 35 days in a month, 7 days a week */
   weekday = ((35 * time_info.month) + day) % 7;
 
-  send_to_char(ch, "It is %d o'clock %s, on %s.\r\n",
-      (time_info.hours % 12 == 0) ? 12 : (time_info.hours % 12),
-      time_info.hours >= 12 ? "pm" : "am", weekdays[weekday]);
+  /* 24-timmarsklocka */
+  int hour_24 = time_info.hours;
+  int hour_12 = (hour_24 % 12 == 0) ? 12 : (hour_24 % 12);
+  const char *ampm = hour_24 >= 12 ? "pm" : "am";
 
-  /* Peter Ajamian supplied the following as a fix for a bug introduced in the
-   * ordinal display that caused 11, 12, and 13 to be incorrectly displayed as
-   * 11st, 12nd, and 13rd.  Nate Winters had already submitted a fix, but it
-   * hard-coded a limit on ordinal display which I want to avoid. -dak */
+  send_to_char(ch, "It is %02d:00 (%d:00 %s), on %s.\r\n",
+               hour_24, hour_12, ampm, weekdays[weekday]);
+
+  /* Ordinal suffix fix */
   suf = "th";
-
   if (((day % 100) / 10) != 1) {
     switch (day % 10) {
-    case 1:
-      suf = "st";
-      break;
-    case 2:
-      suf = "nd";
-      break;
-    case 3:
-      suf = "rd";
-      break;
+    case 1: suf = "st"; break;
+    case 2: suf = "nd"; break;
+    case 3: suf = "rd"; break;
     }
   }
+
   send_to_char(ch, "The %d%s Day of the %s, Year %d.\r\n",
-      day, suf, month_name[time_info.month], time_info.year);
+               day, suf, month_name[time_info.month], time_info.year);
 }
 
 ACMD(do_weather)
@@ -1872,10 +1867,10 @@ ACMD(do_users)
     else
       strcpy(state, connected_types[STATE(d)]);
 
-    if (d->character && STATE(d) == CON_PLAYING)
-      sprintf(idletime, "%5d", d->character->char_specials.timer *
-          SECS_PER_MUD_HOUR / SECS_PER_REAL_MIN);
-    else
+    if (d->character && STATE(d) == CON_PLAYING) {
+      int idle_secs = d->character->char_specials.timer * 60;
+      sprintf(idletime, "%s", format_duration(idle_secs));
+    } else
       strcpy(idletime, "     ");
 
     sprintf(line, "%3d %-7s %-12s %-14s %-3s %-8s ", d->desc_num, classname,
@@ -2808,8 +2803,8 @@ ACMD(do_whois)
     hours = (time(0) - victim->player.time.logon) / 3600;
 
     if (!got_from_file) {
-      send_to_char(ch, "Last Logon: Playing now!  (Idle %d Minutes)",
-           victim->char_specials.timer * SECS_PER_MUD_HOUR / SECS_PER_REAL_MIN);
+      send_to_char(ch, "Last Logon: Playing now!  (Idle %s)\r\n",
+             format_duration(victim->char_specials.timer * 60));
 
       if (!victim->desc)
         send_to_char(ch, "  (Linkless)\r\n");
@@ -3075,7 +3070,6 @@ ACMD(do_damagenumbers) {
 ACMD(do_affects)
 {
   struct affected_type *aff;
-  char buf[MAX_STRING_LENGTH];
   int i, j;
 
   if (!ch->affected) {
@@ -3084,63 +3078,80 @@ ACMD(do_affects)
   }
 
   send_to_char(ch, "%s---%s %sAffections%s %s---%s\r\n",
-             CCWHT(ch, C_NRM),
-             CCNRM(ch, C_NRM),
-             CCWHT(ch, C_NRM),
-             CCNRM(ch, C_NRM),
-             CCWHT(ch, C_NRM),
-             CCNRM(ch, C_NRM));
+               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM),
+               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM),
+               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM));
 
   for (aff = ch->affected; aff; aff = aff->next) {
-    /* Spell and duration */
-    send_to_char(ch, "%sSpell%s: (%s%3d%s hr) %s%-20s%s",
-                 CCCYN(ch, C_NRM),  /* Bright Cyan */
-                 CCNRM(ch, C_NRM),
-                 CCGRN(ch, C_NRM),  /* Bright Green */
-                 aff->duration + 1,
-                 CCNRM(ch, C_NRM),
-                 CCWHT(ch, C_NRM),  /* Bright White */
-                 spell_info[aff->spell].name,
-                 CCNRM(ch, C_NRM));
+    char timebuf[16];
+    int dur = aff->duration;
+    int hours = dur / 3600;
+    int mins  = (dur % 3600) / 60;
+    int secs  = dur % 60;
 
-    /* Modifier */
+  if (hours > 0) {
+    snprintf(timebuf, sizeof(timebuf), "%dh %dm", hours, mins);
+  } else if (mins > 0) {
+    snprintf(timebuf, sizeof(timebuf), "%dm %ds", mins, secs);
+  } else {
+    snprintf(timebuf, sizeof(timebuf), "%ds", secs);
+  }
+
+    // Spell and duration
+    send_to_char(ch, "%s[%-9s]%s %s%-22s%s",
+             CCGRN(ch, C_NRM),
+             timebuf,  // no internal spaces
+             CCNRM(ch, C_NRM),
+             CCCYN(ch, C_NRM),
+             spell_info[aff->spell].name,
+             CCNRM(ch, C_NRM));
+
+    // Modifier (if present)
     if (aff->modifier) {
       send_to_char(ch, " %s[%+d %s]%s",
-                   CCYEL(ch, C_NRM),  /* Bright Yellow */
+                   CCYEL(ch, C_NRM),
                    aff->modifier,
                    apply_types[(int)aff->location],
                    CCNRM(ch, C_NRM));
     }
 
-    /* Bitvectors */
+    // Bitvectors
     for (i = 0; i < AF_ARRAY_MAX; i++) {
       for (j = 0; j < 32; j++) {
         if (IS_SET(aff->bitvector[i], (1 << j))) {
-          snprintf(buf, sizeof(buf), " %ssets %s%s",
-                   CCMAG(ch, C_NRM),  /* Bright Magenta */
-                   affected_bits[i * 32 + j],
-                   CCNRM(ch, C_NRM));
-          send_to_char(ch, "%s", buf);
+          send_to_char(ch, " %ssets %s%s",
+                       CCMAG(ch, C_NRM),
+                       affected_bits[i * 32 + j],
+                       CCNRM(ch, C_NRM));
         }
       }
     }
+    send_to_char(ch, " %s(%ds)%s", CCRED(ch, C_NRM), aff->duration, CCNRM(ch, C_NRM));
 
-    /* Line break */
     send_to_char(ch, "\r\n");
   }
 }
 
+
+
 ACMD(do_cooldowns)
 {
-    struct cooldown_node *cd, *next_cd;
+  struct cooldown_node *cd, *next_cd;
 
   send_to_char(ch, "Cooldowns:\tn\r\n");
   send_to_char(ch, "----------\tn\r\n");
+
   if (ch->cooldown) {
     for (cd = ch->cooldown; cd; cd = next_cd) {
-      next_cd = cd->next; 
-      send_to_char(ch, "(%3ds) %s%-21s%s ", cd->timer + 1, CCCYN(ch, C_NRM), spell_info[cd->spellnum].name, CCNRM(ch, C_NRM));
-      send_to_char(ch, "\r\n");
+      next_cd = cd->next;
+
+      const char *time_str = format_duration(cd->timer);
+
+      send_to_char(ch, "(%s) %s%-21s%s\r\n",
+                   time_str,
+                   CCCYN(ch, C_NRM),
+                   spell_info[cd->spellnum].name,
+                   CCNRM(ch, C_NRM));
     }
   }
 }
