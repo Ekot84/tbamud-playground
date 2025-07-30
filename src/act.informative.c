@@ -172,16 +172,16 @@ static void show_obj_modifiers(struct obj_data *obj, struct char_data *ch)
     send_to_char(ch, " (invisible)");
 
   if (OBJ_FLAGGED(obj, ITEM_BLESS) && AFF_FLAGGED(ch, AFF_DETECT_ALIGN))
-    send_to_char(ch, " ..It glows blue!");
+    send_to_char(ch, " \tb(blue)\tn");
 
   if (OBJ_FLAGGED(obj, ITEM_MAGIC) && AFF_FLAGGED(ch, AFF_DETECT_MAGIC))
-    send_to_char(ch, " ..It glows yellow!");
+    send_to_char(ch, " \tm(magical)tn");
 
   if (OBJ_FLAGGED(obj, ITEM_GLOW))
-    send_to_char(ch, " ..It has a soft glowing aura!");
+    send_to_char(ch, " \ty(glowing)\tn");
 
   if (OBJ_FLAGGED(obj, ITEM_HUM))
-    send_to_char(ch, " ..It emits a faint humming sound!");
+    send_to_char(ch, " \tD(humming)\tn");
 }
 
 static void list_obj_to_char(struct obj_data *list, struct char_data *ch, int mode, int show)
@@ -1375,13 +1375,13 @@ ACMD(do_time)
   /* 35 days in a month, 7 days a week */
   weekday = ((35 * time_info.month) + day) % 7;
 
-  /* 24-timmarsklocka */
+  /* 24hrs clock */
   int hour_24 = time_info.hours;
   int hour_12 = (hour_24 % 12 == 0) ? 12 : (hour_24 % 12);
   const char *ampm = hour_24 >= 12 ? "pm" : "am";
 
-  send_to_char(ch, "It is %02d:00 (%d:00 %s), on %s.\r\n",
-               hour_24, hour_12, ampm, weekdays[weekday]);
+  send_to_char(ch, "It is %02d:00 (%d:00 %s), on %s (%d).\r\n",
+               hour_24, hour_12, ampm, weekdays[weekday], weekday + 1);
 
   /* Ordinal suffix fix */
   suf = "th";
@@ -1393,8 +1393,8 @@ ACMD(do_time)
     }
   }
 
-  send_to_char(ch, "The %d%s Day of the %s, Year %d.\r\n",
-               day, suf, month_name[time_info.month], time_info.year);
+  send_to_char(ch, "The %d%s Day of the %s (%d), Year %d.\r\n",
+               day, suf, month_name[time_info.month], time_info.month + 1, time_info.year);
 }
 
 ACMD(do_weather)
@@ -3071,68 +3071,68 @@ ACMD(do_affects)
 {
   struct affected_type *aff;
   int i, j;
+  bool found = FALSE;
 
+
+  send_to_char(ch, "\twAffections:\tn\r\n-----------------\r\n");
+  //Always show bitvector flags 
+  char affbuf[256];
+  sprintbitarray(AFF_FLAGS(ch), affected_bits, AF_ARRAY_MAX, affbuf);
+  if (*affbuf)
+    send_to_char(ch, "\twFlags:\tm %s\tn\r\n", affbuf);
+  else
+    send_to_char(ch, "\tyFlags:\tn None\r\n");
+
+
+  // If no timed affects, just return
   if (!ch->affected) {
-    send_to_char(ch, "You aren't affected by anything.\r\n");
+    send_to_char(ch, "\twYou have no timed spell effects.\tn\r\n");
     return;
   }
 
-  send_to_char(ch, "%s---%s %sAffections%s %s---%s\r\n",
-               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM),
-               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM),
-               CCWHT(ch, C_NRM), CCNRM(ch, C_NRM));
+  //send_to_char(ch, "\tW--- Spell Effects ---\tn\r\n");
 
   for (aff = ch->affected; aff; aff = aff->next) {
-    char timebuf[16];
+    char timebuf[32];
     int dur = aff->duration;
     int hours = dur / 3600;
     int mins  = (dur % 3600) / 60;
     int secs  = dur % 60;
 
-  if (hours > 0) {
-    snprintf(timebuf, sizeof(timebuf), "%dh %dm", hours, mins);
-  } else if (mins > 0) {
-    snprintf(timebuf, sizeof(timebuf), "%dm %ds", mins, secs);
-  } else {
-    snprintf(timebuf, sizeof(timebuf), "%ds", secs);
-  }
+    if (hours > 0)
+      snprintf(timebuf, sizeof(timebuf), "%dh %dm", hours, mins);
+    else if (mins > 0)
+      snprintf(timebuf, sizeof(timebuf), "%dm %ds", mins, secs);
+    else
+      snprintf(timebuf, sizeof(timebuf), "%ds", secs);
 
-    // Spell and duration
-    send_to_char(ch, "%s[%-9s]%s %s%-22s%s",
-             CCGRN(ch, C_NRM),
-             timebuf,  // no internal spaces
-             CCNRM(ch, C_NRM),
-             CCCYN(ch, C_NRM),
-             spell_info[aff->spell].name,
-             CCNRM(ch, C_NRM));
+    send_to_char(ch, "\tg[%-9s]\tn \tc%-22s\tn", timebuf, spell_info[aff->spell].name);
 
-    // Modifier (if present)
     if (aff->modifier) {
-      send_to_char(ch, " %s[%+d %s]%s",
-                   CCYEL(ch, C_NRM),
-                   aff->modifier,
-                   apply_types[(int)aff->location],
-                   CCNRM(ch, C_NRM));
+      send_to_char(ch, " \tY[%+d %s]\tn", aff->modifier, apply_types[(int)aff->location]);
     }
 
-    // Bitvectors
+    // Bitvector flags per affect
     for (i = 0; i < AF_ARRAY_MAX; i++) {
       for (j = 0; j < 32; j++) {
+        int index = i * 32 + j;
+        if (index >= NUM_AFF_FLAGS)
+          continue;
+
         if (IS_SET(aff->bitvector[i], (1 << j))) {
-          send_to_char(ch, " %ssets %s%s",
-                       CCMAG(ch, C_NRM),
-                       affected_bits[i * 32 + j],
-                       CCNRM(ch, C_NRM));
+          send_to_char(ch, " \tmsets %s\tn", affected_bits[index]);
         }
       }
     }
-    send_to_char(ch, " %s(%ds)%s", CCRED(ch, C_NRM), aff->duration, CCNRM(ch, C_NRM));
 
-    send_to_char(ch, "\r\n");
+    // Raw Duration
+    send_to_char(ch, " \tr(%ds)\tn\r\n", aff->duration);
+    found = TRUE;
   }
+
+  if (!found)
+    send_to_char(ch, "\twYou aren't affected by any spells.\tn\r\n");
 }
-
-
 
 ACMD(do_cooldowns)
 {
@@ -3154,4 +3154,43 @@ ACMD(do_cooldowns)
                    CCNRM(ch, C_NRM));
     }
   }
+}
+
+ACMD(do_calendar)
+{
+  extern const char *weekdays[];
+  extern const char *month_name[];
+
+  send_to_char(ch, "\twRealm Calendar Overview\tn\r\n");
+  send_to_char(ch, "  \ty- 1 year has 17 months\tn\n");
+  send_to_char(ch, "  \ty- Each month has 35 days\tn\n");
+  send_to_char(ch, "  \ty- Each day has 24 hours\tn\r\n");
+
+  send_to_char(ch, "\r\n\twDays of the Week:\tn\r\n");
+  for (int i = 0; i < 7; i++) {
+    if (i == time_info.day % 7)
+      send_to_char(ch, "  \tg* %d - %s\tn\r\n", i, weekdays[i]);
+    else
+      send_to_char(ch, "    %d - %s\r\n", i, weekdays[i]);
+  }
+
+  send_to_char(ch, "\r\n\twMonths of the Year:\tn\r\n");
+  for (int i = 0; i < 17; i++) {
+    if (i == time_info.month) {
+      send_to_char(ch, "  \tg* %2d - %s\tn (Days 1–35)\r\n", i, month_name[i]);
+    } else {
+      send_to_char(ch, "    %2d - %s (Days 1–35)\r\n", i, month_name[i]);
+    }
+  }
+
+  send_to_char(ch, "\r\n\twToday's Date:\tn\r\n");
+
+  send_to_char(ch, "  \tc%s\tn, Day \tc%d%s\tn of \tc%s\tn, Year \tc%d\tn.\r\n",
+               weekdays[time_info.day % 7],
+               time_info.day + 1,
+               (time_info.day + 1 == 1) ? "st" :
+               (time_info.day + 1 == 2) ? "nd" :
+               (time_info.day + 1 == 3) ? "rd" : "th",
+               month_name[time_info.month],
+               time_info.year);
 }

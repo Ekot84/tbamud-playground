@@ -112,6 +112,7 @@ ACMD(do_killlist);
 ACMD(do_damagenumbers); /**< Toggle showing damage numbers in combat */
 ACMD(do_affects); /**< Show active affects on the character */
 ACMD(do_cooldowns); /** Show active cooldowns on the character */
+ACMD(do_calendar); /**< Show the current in-game calendar date */
 
 /*****************************************************************************
  * Begin Functions and defines for act.item.c

@@ -540,6 +540,7 @@ const char *apply_types[] = {
   "HIT_REGEN",
   "MANA_REGEN",
   "MOVE_REGEN",
+  "CARRY_SLOTS",
   "\n"
 };
 
