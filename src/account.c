@@ -1,142 +1,171 @@
+/*=============================================================================
+ *  Account Management System - JSON-Based
+ *
+ *  This module handles loading, saving, and managing account data for players.
+ *  Account data is stored in JSON format for easy extensibility and clarity.
+ *
+ *  Features:
+ *    - Account creation and initialization
+ *    - Secure password storage with hashing
+ *    - Character linking to accounts
+ *    - Shared chest slot support (JSON-ready)
+ *    - JSON-based serialization using cJSON
+ *
+ *  Author: Eko
+ *  License: See tbamud-playground LICENSE
+ *============================================================================*/
+
 #include "account.h"
+#include "cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ctype.h>
-#include <unistd.h>  // for crypt()
+#include <unistd.h>
 
 #ifndef CRYPT
 #define CRYPT crypt
 #endif
 
-// Returns the full path to the account file for a given account name.
+// Returns the full file path to the JSON account file based on account name
 static char *account_filename(const char *name) {
   static char path[256];
-  snprintf(path, sizeof(path), "%s%s.acct", ACCOUNT_FILE_PATH, name);
+  snprintf(path, sizeof(path), "%s%s.json", ACCOUNT_FILE_PATH, name);
   return path;
 }
 
-// Creates a new account struct and initializes it with the given name and password.
+// Allocates and initializes a new account with the provided name and password
 struct account_data *create_account(const char *name, const char *password) {
   struct account_data *account = calloc(1, sizeof(struct account_data));
   if (!account) return NULL;
 
   strncpy(account->name, name, ACCOUNT_NAME_LENGTH - 1);
   strncpy(account->password, CRYPT(password, account->name), ACCOUNT_PASS_LENGTH - 1);
-  account->password[ACCOUNT_PASS_LENGTH - 1] = '\0';  // safety  
+  account->password[ACCOUNT_PASS_LENGTH - 1] = '\0';
   account->created = time(0);
   account->last_login = account->created;
   account->siteok = true;
-  account->max_online = 2; // Default to 2 simultaneous logins
+  account->max_online = 2;
   return account;
 }
 
-// Saves account data to disk. Returns 1 on success, 0 on failure.
-int save_account(struct account_data *account) {
-  const char *filename = account_filename(account->name);  // <-- create filename first
-  FILE *fp = fopen(filename, "w");
+// Saves the given account to disk in JSON format. Returns 1 on success, 0 on failure.
+int save_account(struct account_data *acc) {
+  const char *filename = account_filename(acc->name);
+  cJSON *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "name", acc->name);
+  cJSON_AddStringToObject(json, "password", acc->password);
+  cJSON_AddStringToObject(json, "email", acc->email);
+  cJSON_AddNumberToObject(json, "created", (double)acc->created);
+  cJSON_AddNumberToObject(json, "last_login", (double)acc->last_login);
+  cJSON_AddBoolToObject(json, "siteok", acc->siteok);
+  cJSON_AddNumberToObject(json, "max_online", acc->max_online);
 
+  cJSON *chars = cJSON_CreateArray();
+  for (int i = 0; i < acc->num_characters; i++) {
+    cJSON_AddItemToArray(chars, cJSON_CreateString(acc->characters[i]));
+  }
+  cJSON_AddItemToObject(json, "characters", chars);
+
+  cJSON_AddNumberToObject(json, "shared_chest_slots", acc->shared_chest_slots);
+  // TODO: Add shared_chest serialization later
+
+  char *out = cJSON_PrintBuffered(json, 2048, 1);
+  FILE *fp = fopen(filename, "w");
   if (!fp) {
-    perror("save_account fopen error");
-    fprintf(stderr, "Tried to open: %s\n", filename);
+    cJSON_Delete(json);
+    free(out);
     return 0;
   }
-
-  // Write each field to the file in key-value format
-  fprintf(fp, "Name %s\n", account->name);
-  fprintf(fp, "Pass %s\n", account->password);
-  fprintf(fp, "Email %s\n", account->email);
-  fprintf(fp, "Created %ld\n", (long)account->created);
-  fprintf(fp, "LastLogin %ld\n", (long)account->last_login);
-  fprintf(fp, "Siteok %s\n", account->siteok ? "true" : "false");
-  fprintf(fp, "MaxOnline %d\n", account->max_online);
-  for (int i = 0; i < account->num_characters; i++) {
-    fprintf(fp, "Char %s\n", account->characters[i]);
-  }
-
+  fputs(out, fp);
   fclose(fp);
+
+  cJSON_Delete(json);
+  free(out);
   return 1;
 }
 
-// Loads account data from disk. Returns a pointer to the account struct, or NULL if failed.
+// Loads and returns an account from disk in JSON format. Returns NULL on failure.
 struct account_data *load_account(const char *name) {
   FILE *fp = fopen(account_filename(name), "r");
   if (!fp) return NULL;
 
-  struct account_data *account = calloc(1, sizeof(struct account_data));
-  if (!account) return NULL;
+  fseek(fp, 0, SEEK_END);
+  long len = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
 
-  char line[256], key[32], value[224];
-  while (fgets(line, sizeof(line), fp)) {
-    if (sscanf(line, "%31s %223[^\n]", key, value) != 2) continue;
-
-    if (!strcmp(key, "Name")) {
-      strncpy(account->name, value, ACCOUNT_NAME_LENGTH - 1);
-      account->name[ACCOUNT_NAME_LENGTH - 1] = '\0';
-    }
-    else if (!strcmp(key, "Pass")) {
-      strncpy(account->password, value, ACCOUNT_PASS_LENGTH - 1);
-      account->password[ACCOUNT_PASS_LENGTH - 1] = '\0';
-    }
-    else if (!strcmp(key, "Email")) {
-      strncpy(account->email, value, ACCOUNT_EMAIL_LENGTH - 1);
-      account->email[ACCOUNT_EMAIL_LENGTH - 1] = '\0';
-    }    
-    else if (!strcmp(key, "Created"))
-      account->created = atol(value);
-    else if (!strcmp(key, "LastLogin"))
-      account->last_login = atol(value);
-    else if (!strcmp(key, "Siteok"))
-      account->siteok = (!strcasecmp(value, "true") || !strcmp(value, "1"));
-    else if (!strcmp(key, "MaxOnline"))
-      account->max_online = atoi(value);  
-    else if (!strcmp(key, "Char")) {
-      if (account->num_characters < MAX_CHARS_PER_ACCOUNT) {
-        account->characters[account->num_characters++] = strdup(value);
-      }
-    }
+  char *data = malloc(len + 1);
+  if (fread(data, 1, len, fp) != len) {
+    free(data);
+    fclose(fp);
+    return NULL;
   }
-
+  data[len] = '\0';
   fclose(fp);
-  return account;
+
+  cJSON *json = cJSON_Parse(data);
+  free(data);
+  if (!json) return NULL;
+
+  struct account_data *acc = calloc(1, sizeof(struct account_data));
+  strncpy(acc->name, cJSON_GetObjectItem(json, "name")->valuestring, ACCOUNT_NAME_LENGTH - 1);
+  strncpy(acc->password, cJSON_GetObjectItem(json, "password")->valuestring, ACCOUNT_PASS_LENGTH - 1);
+  strncpy(acc->email, cJSON_GetObjectItem(json, "email")->valuestring, ACCOUNT_EMAIL_LENGTH - 1);
+  acc->created = (time_t)cJSON_GetObjectItem(json, "created")->valuedouble;
+  acc->last_login = (time_t)cJSON_GetObjectItem(json, "last_login")->valuedouble;
+  acc->siteok = cJSON_IsTrue(cJSON_GetObjectItem(json, "siteok"));
+  acc->max_online = cJSON_GetObjectItem(json, "max_online")->valueint;
+
+  cJSON *chars = cJSON_GetObjectItem(json, "characters");
+  cJSON *ch;
+  int i = 0;
+  cJSON_ArrayForEach(ch, chars) {
+    if (i >= MAX_CHARS_PER_ACCOUNT) break;
+    acc->characters[i++] = strdup(ch->valuestring);
+  }
+  acc->num_characters = i;
+
+  cJSON *slots = cJSON_GetObjectItem(json, "shared_chest_slots");
+  acc->shared_chest_slots = slots ? slots->valueint : 0;
+
+  cJSON_Delete(json);
+  return acc;
 }
 
-// Frees all memory associated with an account struct
-void free_account(struct account_data *account) {
-  if (!account) return;
-  for (int i = 0; i < account->num_characters; i++)
-    free(account->characters[i]);
-  free(account);
+// Frees memory allocated for the account structure and character strings
+void free_account(struct account_data *acc) {
+  if (!acc) return;
+  for (int i = 0; i < acc->num_characters; i++)
+    free(acc->characters[i]);
+  free(acc);
 }
 
-// Adds a character to the account if under the character limit. Returns 1 if successful.
-int account_add_character(struct account_data *account, const char *charname) {
-  if (account->num_characters >= MAX_CHARS_PER_ACCOUNT)
+// Adds a character name to the account if below max limit. Returns 1 if successful.
+int account_add_character(struct account_data *acc, const char *charname) {
+  if (acc->num_characters >= MAX_CHARS_PER_ACCOUNT)
     return 0;
-  account->characters[account->num_characters++] = strdup(charname);
+  acc->characters[acc->num_characters++] = strdup(charname);
   return 1;
 }
 
-// Checks if a character is associated with this account. Case-insensitive.
-int account_has_character(struct account_data *account, const char *charname) {
-  for (int i = 0; i < account->num_characters; i++)
-    if (!strcasecmp(account->characters[i], charname))
+// Returns 1 if the given character is part of this account
+int account_has_character(struct account_data *acc, const char *charname) {
+  for (int i = 0; i < acc->num_characters; i++)
+    if (!strcasecmp(acc->characters[i], charname))
       return 1;
   return 0;
 }
 
-// Verifies that the given password matches the stored account password.
-// Returns 1 if the password is correct, 0 otherwise.
-int verify_password(struct account_data *account, const char *password) {
-  if (!account || !password) return 0;
-
-  char *hashed = CRYPT(password, account->name);
-  return (hashed && !strcmp(hashed, account->password));
+// Verifies if the given password matches the stored account password
+int verify_password(struct account_data *acc, const char *password) {
+  if (!acc || !password) return 0;
+  char *hashed = CRYPT(password, acc->name);
+  return (hashed && !strcmp(hashed, acc->password));
 }
 
-// Updates the account's last login timestamp to the current time.
-void update_last_login(struct account_data *account) {
-  if (account)
-    account->last_login = time(0);
+// Updates the last login time for the account to the current time
+void update_last_login(struct account_data *acc) {
+  if (acc)
+    acc->last_login = time(0);
 }
+
