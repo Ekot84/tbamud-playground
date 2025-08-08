@@ -30,6 +30,7 @@
 #include "shop.h"
 #include "quest.h"
 #include "modify.h"
+#include "account.h"
 
 /* Local defined utility functions */
 /* do_group utility functions */
@@ -1143,3 +1144,136 @@ void update_cooldowns()
       update_cooldown(i);
   }
 }
+
+ACMD(do_stash)
+{
+  char a1[MAX_INPUT_LENGTH], a2[MAX_INPUT_LENGTH];
+  two_arguments(argument, a1, a2);
+
+  /* Ensure player has an account linked */
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) {
+    send_to_char(ch, "\trNo account linked. You must log in under an account to use the stash.\tn\r\n");
+    return;
+  }
+
+  /* Location restriction: must be near ITEM_STASH unless admin */
+  if (GET_LEVEL(ch) < LVL_IMPL) {
+    bool near_stash = false;
+    for (struct obj_data *o = world[IN_ROOM(ch)].contents; o; o = o->next_content) {
+      if (GET_OBJ_TYPE(o) == ITEM_STASH) {
+        near_stash = true;
+        break;
+      }
+    }
+    if (!near_stash) {
+      send_to_char(ch, "\trYou must be near a stash to use this command.\tn\r\n");
+      return;
+    }
+  }
+
+  /* No arguments -> list stash contents */
+  if (!*a1) {
+    acc_stash_list(ch);
+    return;
+  }
+
+/* PUT: move from inventory to stash */
+if (!strcasecmp(a1, "put")) {
+  if (!*a2) {
+    send_to_char(ch, "\tyUsage:\tw stash put <inv#|name> [slot]\tn\r\n");
+    return;
+  }
+
+  char arg_item[MAX_INPUT_LENGTH], arg_slot[MAX_INPUT_LENGTH];
+  two_arguments(a2, arg_item, arg_slot);
+
+  struct obj_data *obj = NULL;
+
+  /* If it's a number, treat as inventory index */
+  if (isdigit(*arg_item)) {
+    int num = atoi(arg_item);
+    obj = get_obj_in_list_num(num, ch->carrying);
+  } else {
+    /* Otherwise, treat as object name */
+    obj = get_obj_in_list_vis(ch, arg_item, NULL, ch->carrying);
+  }
+
+  if (!obj) {
+    send_to_char(ch, "\trNo such item in your inventory.\tn\r\n");
+    return;
+  }
+
+  /* If slot number was given, use the new in-slot function */
+  if (*arg_slot) {
+    if (!isdigit(*arg_slot)) {
+      send_to_char(ch, "\trInvalid slot number.\tn\r\n");
+      return;
+    }
+    int target_slot = atoi(arg_slot) - 1; /* 1-based → 0-based */
+    if (!acc_stash_put_obj_in_slot(ch, obj, target_slot)) {
+      send_to_char(ch, "\trFailed to stash the item.\tn\r\n");
+    }
+  } else {
+    /* No slot given → normal stash put */
+    if (!acc_stash_put_obj(ch, obj)) {
+      send_to_char(ch, "\trFailed to stash the item.\tn\r\n");
+    }
+  }
+
+  acc_stash_list(ch);
+  return;
+}
+
+
+/* TAKE/GET: withdraw from stash */
+if (!strcasecmp(a1, "take") || !strcasecmp(a1, "get")) {
+  if (!*a2 || !isdigit(*a2)) {
+    send_to_char(ch, "\tyUsage:\tw stash take|get <slot>\tn\r\n");
+    return;
+  }
+
+  int slot = atoi(a2) - 1; /* Convert from player 1-based to internal 0-based */
+
+  if (!acc_stash_take_from_slot(ch, slot)) {
+    send_to_char(ch, "\trCould not withdraw from that slot.\tn\r\n");
+  }
+
+  acc_stash_list(ch);
+  return;
+}
+
+  /* CAPACITY: admin-only change */
+  if (!strcasecmp(a1, "capacity")) {
+    if (!*a2 || !isdigit(*a2)) {
+      send_to_char(ch, "\tyUsage:\tw stash capacity <n>\tn\r\n");
+      return;
+    }
+    int n = atoi(a2);
+    if (GET_LEVEL(ch) < LVL_IMPL) {
+      send_to_char(ch, "\trOnly admins can change stash capacity.\tn\r\n");
+      return;
+    }
+    if (n < 0 || n > 1000) {
+      send_to_char(ch, "\trCapacity must be between 0 and 1000.\tn\r\n");
+      return;
+    }
+    if (acc_stash_set_capacity(ch, n)) {
+      send_to_char(ch, "\tgStash capacity updated to %d.\tn\r\n", n);
+    } else {
+      send_to_char(ch, "\trFailed to update stash capacity.\tn\r\n");
+    }
+    acc_stash_list(ch);
+    return;
+  }
+
+  /* Default usage message */
+  send_to_char(ch,
+    "\tyUsage:\tw stash\tn\r\n"
+    "\ty       stash put <inv#|name>\tn\r\n"
+    "\ty       stash take|get <slot>\tn\r\n"
+    "\ty       stash capacity <n>\tn\r\n"
+  );
+}
+
+

@@ -1,0 +1,54 @@
+make ../bin/circle
+make[1]: Entering directory '/mnt/c/Eko/temp/account/src'
+gcc -g -O2 -Wall -Wno-char-subscripts -Wno-unused-but-set-variable    -c -o utils.o utils.c
+utils.c: In function ‘stash_put_obj’:
+utils.c:2196:7: warning: the address of ‘should_persist_object’ will always evaluate as ‘true’ [-Waddress]
+ 2196 |   if (should_persist_object && !should_persist_object(obj)) return false;
+      |       ^~~~~~~~~~~~~~~~~~~~~
+utils.c: At top level:
+utils.c:2256:13: error: redefinition of ‘stash_load_json’
+ 2256 | static bool stash_load_json(const char *accname, struct account_stash **out) {
+      |             ^~~~~~~~~~~~~~~
+utils.c:2079:13: note: previous definition of ‘stash_load_json’ with type ‘bool(const char *, struct account_stash **)’ {aka ‘char(const char *, struct account_stash **)’}
+ 2079 | static bool stash_load_json(const char *accname, struct account_stash **out) {
+      |             ^~~~~~~~~~~~~~~
+utils.c:2310:13: error: redefinition of ‘stash_save_json’
+ 2310 | static bool stash_save_json(const char *accname, const struct account_stash *st) {
+      |             ^~~~~~~~~~~~~~~
+utils.c:2141:13: note: previous definition of ‘stash_save_json’ with type ‘bool(const char *, const struct account_stash *)’ {aka ‘char(const char *, const struct account_stash *)’}
+ 2141 | static bool stash_save_json(const char *accname, const struct account_stash *st) {
+      |             ^~~~~~~~~~~~~~~
+utils.c: In function ‘acc_stash_put_obj’:
+utils.c:2372:7: warning: the comparison will always evaluate as ‘true’ for the address of ‘should_persist_object’ will never be NULL [-Waddress]
+ 2372 |   if (should_persist_object && !should_persist_object(obj)) {
+      |       ^~~~~~~~~~~~~~~~~~~~~
+utils.c:1746:6: note: ‘should_persist_object’ declared here
+ 1746 | bool should_persist_object(struct obj_data *obj) {
+      |      ^~~~~~~~~~~~~~~~~~~~~
+utils.c: At top level:
+utils.c:39:15: warning: ‘json_from_obj’ used but never defined
+   39 | static cJSON *json_from_obj(struct obj_data *obj, bool include_contents);
+      |               ^~~~~~~~~~~~~
+utils.c:40:25: warning: ‘obj_from_json_node’ used but never defined
+   40 | static struct obj_data *obj_from_json_node(const cJSON *jo, bool include_contents);
+      |                         ^~~~~~~~~~~~~~~~~~
+utils.c: In function ‘stash_load_json’:
+utils.c:2273:3: warning: ignoring return value of ‘fread’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+ 2273 |   fread(buf, 1, len, fp); buf[len] = '\0';
+      |   ^~~~~~~~~~~~~~~~~~~~~~
+utils.c: At top level:
+utils.c:2183:30: warning: ‘acc_get_or_load_stash’ defined but not used [-Wunused-function]
+ 2183 | static struct account_stash *acc_get_or_load_stash(struct char_data *ch) {
+      |                              ^~~~~~~~~~~~~~~~~~~~~
+utils.c:2179:20: warning: ‘acc_name_for’ defined but not used [-Wunused-function]
+ 2179 | static const char *acc_name_for(struct char_data *ch) {
+      |                    ^~~~~~~~~~~~
+utils.c:2141:13: warning: ‘stash_save_json’ defined but not used [-Wunused-function]
+ 2141 | static bool stash_save_json(const char *accname, const struct account_stash *st) {
+      |             ^~~~~~~~~~~~~~~
+utils.c:2069:30: warning: ‘stash_new’ defined but not used [-Wunused-function]
+ 2069 | static struct account_stash *stash_new(int cap) {
+      |                              ^~~~~~~~~
+make[1]: *** [<builtin>: utils.o] Error 1
+make[1]: Leaving directory '/mnt/c/Eko/temp/account/src'
+make: *** [Makefile:30: all] Error 2

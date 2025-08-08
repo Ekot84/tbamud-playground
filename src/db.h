@@ -49,6 +49,7 @@
 #define LIB_PLRFILES    "plrfiles/"
 #define LIB_ITEMMAIL "itemmail/"
 #define PERSISTENT_PATH "persistent/"
+#define ACCOUNT_STASH_PATH "accounts_stash/"
 #define SLASH		"/"
 #else
 #error "Unknown path components."

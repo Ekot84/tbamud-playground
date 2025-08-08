@@ -451,6 +451,7 @@ const char *item_types[] = {
   "BOAT",
   "FOUNTAIN",
   "BOARD",
+  "STASH", /* Stash item, used for storing items */
   "\n"
 };
 

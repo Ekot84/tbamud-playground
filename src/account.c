@@ -44,8 +44,10 @@ struct account_data *create_account(const char *name, const char *password) {
   account->password[ACCOUNT_PASS_LENGTH - 1] = '\0';
   account->created = time(0);
   account->last_login = account->created;
-  account->siteok = true;
+  account->siteok = 1;
   account->max_online = 2;
+  /* init stash pointer so we can lazy-load later */
+  account->stash = NULL;
   return account;
 }
 
@@ -66,9 +68,6 @@ int save_account(struct account_data *acc) {
     cJSON_AddItemToArray(chars, cJSON_CreateString(acc->characters[i]));
   }
   cJSON_AddItemToObject(json, "characters", chars);
-
-  cJSON_AddNumberToObject(json, "shared_chest_slots", acc->shared_chest_slots);
-  // TODO: Add shared_chest serialization later
 
   char *out = cJSON_PrintBuffered(json, 2048, 1);
   FILE *fp = fopen(filename, "w");
@@ -125,9 +124,6 @@ struct account_data *load_account(const char *name) {
   }
   acc->num_characters = i;
 
-  cJSON *slots = cJSON_GetObjectItem(json, "shared_chest_slots");
-  acc->shared_chest_slots = slots ? slots->valueint : 0;
-
   cJSON_Delete(json);
   return acc;
 }
@@ -135,10 +131,12 @@ struct account_data *load_account(const char *name) {
 // Frees memory allocated for the account structure and character strings
 void free_account(struct account_data *acc) {
   if (!acc) return;
-  for (int i = 0; i < acc->num_characters; i++)
-    free(acc->characters[i]);
+  acc_stash_free(acc);
+  for (int i = 0; i < acc->num_characters; i++) free(acc->characters[i]);
   free(acc);
 }
+
+
 
 // Adds a character name to the account if below max limit. Returns 1 if successful.
 int account_add_character(struct account_data *acc, const char *charname) {

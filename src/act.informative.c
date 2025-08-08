@@ -1890,7 +1890,8 @@ ACMD(do_users)
     }
     if (STATE(d) != CON_PLAYING || (STATE(d) == CON_PLAYING && CAN_SEE(ch, d->character))) {
       send_to_char(ch, "%s", line);
-      send_to_char(ch, "      Account: %s\r\n", d->character->account->name);
+      send_to_char(ch, "      Account: %s\r\n",
+    (d->account && d->account->name[0]) ? d->account->name : "(none)");
       num_can_see++;
     }
   }

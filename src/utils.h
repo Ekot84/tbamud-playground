@@ -87,6 +87,11 @@ char *strip_newline(char *s);
 void strip_trailing_whitespace(char *buffer);
 const char *format_duration(int seconds);
 
+void acc_stash_free(struct account_data *acc);
+bool acc_stash_put_obj(struct char_data *ch, struct obj_data *obj);
+bool acc_stash_take_to_char(struct char_data *ch, int slot);
+bool acc_stash_set_capacity(struct char_data *ch, int newcap);
+void acc_stash_list(struct char_data *ch);
 
 /* Public functions made available form weather.c */
 void weather_and_time(int mode);
@@ -695,6 +700,9 @@ do                                                              \
 /* Progression */
 #define GET_TOTAL_EXP_COLLECTED(ch)           (GET_STATISTICS(ch).total_exp_collected)
 #define GET_HOURS_PLAYED(ch)                  (GET_STATISTICS(ch).hours_played)
+
+/* Always return a pointer to struct account_data or NULL */
+#define GET_ACCOUNT(ch) ((ch)->desc ? (ch)->desc->account : NULL)
 
 
 /** The current skill level of ch for skill i. */

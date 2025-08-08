@@ -24,10 +24,24 @@
 #include "class.h"
 #include "genolc.h"
 #include "cJSON.h"
+#include "account.h"
 #include <sys/stat.h>
 
 
 #define MAX_PERSIST_OBJS 1000
+
+/* Stash API (enkla wrappers för kommandot mm.) */
+void acc_stash_list(struct char_data *ch);
+bool acc_stash_put_obj(struct char_data *ch, struct obj_data *obj);
+bool acc_stash_take_to_char(struct char_data *ch, int slot);
+bool acc_stash_set_capacity(struct char_data *ch, int newcap);
+/* Forward declarations (place before stash_save_json / stash_load_json) */
+static cJSON *json_from_obj(struct obj_data *obj, bool include_contents);
+static struct obj_data *obj_from_json_node(const cJSON *jo, bool include_contents);
+static bool stash_load_json(const char *accname, struct account_stash **out);
+static bool stash_save_json(const char *accname, const struct account_stash *st);
+bool acc_stash_put_obj_in_slot(struct char_data *ch, struct obj_data *obj, int slot);
+bool acc_stash_take_from_slot(struct char_data *ch, int slot);
 
 /** Aportable random number function.
  * @param from The lower bounds of the random number.
@@ -2043,3 +2057,578 @@ const char *format_duration(int seconds)
 
   return buf;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Generic object <-> JSON helpers (compatible with your room_save_objects)    */
+/* -------------------------------------------------------------------------- */
+
+/* Serialize one object. include_contents=true if you want to allow bags with items. */
+static cJSON *json_from_obj(struct obj_data *obj, bool include_contents) {
+  if (!obj) return cJSON_CreateNull();
+
+  cJSON *jo = cJSON_CreateObject();
+  cJSON_AddNumberToObject(jo, "vnum", GET_OBJ_VNUM(obj));
+  cJSON_AddStringToObject(jo, "name",  obj->name ? obj->name : "undefined");
+  cJSON_AddStringToObject(jo, "short", obj->short_description ? obj->short_description : "undefined");
+  cJSON_AddStringToObject(jo, "desc",  obj->description ? obj->description : "undefined");
+  cJSON_AddNumberToObject(jo, "type",   GET_OBJ_TYPE(obj));
+  cJSON_AddNumberToObject(jo, "weight", GET_OBJ_WEIGHT(obj));
+  cJSON_AddNumberToObject(jo, "cost",   GET_OBJ_COST(obj));
+  cJSON_AddNumberToObject(jo, "timer",  GET_OBJ_TIMER(obj));
+  cJSON_AddNumberToObject(jo, "level",  obj->obj_flags.level);
+
+  cJSON_AddItemToObject(jo, "val",   cJSON_CreateIntArray(&(obj->obj_flags.value[0]), 4));
+  cJSON_AddItemToObject(jo, "extra", cJSON_CreateIntArray(GET_OBJ_EXTRA(obj), 4));
+  cJSON_AddItemToObject(jo, "wear",  cJSON_CreateIntArray(GET_OBJ_WEAR(obj), 4));
+
+  if (include_contents && GET_OBJ_TYPE(obj) == ITEM_CONTAINER && obj->contains) {
+    cJSON *arr = cJSON_CreateArray();
+    for (struct obj_data *cont = obj->contains; cont; cont = cont->next_content) {
+      if (!should_persist_object(cont)) continue;
+      cJSON_AddItemToArray(arr, json_from_obj(cont, /*include_contents=*/true));
+    }
+    cJSON_AddItemToObject(jo, "contents", arr);
+  }
+
+  return jo;
+}
+
+/* Deserialize one object */
+static struct obj_data *obj_from_json_node(const cJSON *jo, bool include_contents) {
+  if (!jo || cJSON_IsNull(jo)) return NULL;
+
+  const cJSON *jvnum = cJSON_GetObjectItemCaseSensitive(jo, "vnum");
+  if (!cJSON_IsNumber(jvnum)) return NULL;
+
+  struct obj_data *obj = read_object(jvnum->valueint, VIRTUAL);
+  if (!obj) return NULL;
+
+  const cJSON *jname  = cJSON_GetObjectItemCaseSensitive(jo, "name");
+  const cJSON *jshort = cJSON_GetObjectItemCaseSensitive(jo, "short");
+  const cJSON *jdesc  = cJSON_GetObjectItemCaseSensitive(jo, "desc");
+  if (cJSON_IsString(jname)  && jname->valuestring)  obj->name = strdup(jname->valuestring);
+  if (cJSON_IsString(jshort) && jshort->valuestring) obj->short_description = strdup(jshort->valuestring);
+  if (cJSON_IsString(jdesc)  && jdesc->valuestring)  obj->description = strdup(jdesc->valuestring);
+
+  const cJSON *jtype   = cJSON_GetObjectItemCaseSensitive(jo, "type");
+  const cJSON *jweight = cJSON_GetObjectItemCaseSensitive(jo, "weight");
+  const cJSON *jcost   = cJSON_GetObjectItemCaseSensitive(jo, "cost");
+  const cJSON *jtimer  = cJSON_GetObjectItemCaseSensitive(jo, "timer");
+  const cJSON *jlevel  = cJSON_GetObjectItemCaseSensitive(jo, "level");
+  if (cJSON_IsNumber(jtype))   GET_OBJ_TYPE(obj) = jtype->valueint;
+  if (cJSON_IsNumber(jweight)) GET_OBJ_WEIGHT(obj) = jweight->valueint;
+  if (cJSON_IsNumber(jcost))   GET_OBJ_COST(obj) = jcost->valueint;
+  if (cJSON_IsNumber(jtimer))  GET_OBJ_TIMER(obj) = jtimer->valueint;
+  if (cJSON_IsNumber(jlevel))  obj->obj_flags.level = jlevel->valueint;
+
+  const cJSON *jval   = cJSON_GetObjectItemCaseSensitive(jo, "val");
+  const cJSON *jextra = cJSON_GetObjectItemCaseSensitive(jo, "extra");
+  const cJSON *jwear  = cJSON_GetObjectItemCaseSensitive(jo, "wear");
+  if (cJSON_IsArray(jval) && cJSON_GetArraySize(jval) >= 4) {
+    for (int i = 0; i < 4; ++i) {
+      const cJSON *x = cJSON_GetArrayItem((cJSON*)jval, i);
+      if (cJSON_IsNumber(x)) obj->obj_flags.value[i] = x->valueint;
+    }
+  }
+  if (cJSON_IsArray(jextra) && cJSON_GetArraySize(jextra) >= 4) {
+    for (int i = 0; i < 4; ++i) {
+      const cJSON *x = cJSON_GetArrayItem((cJSON*)jextra, i);
+      if (cJSON_IsNumber(x)) GET_OBJ_EXTRA(obj)[i] = x->valueint;
+    }
+  }
+  if (cJSON_IsArray(jwear) && cJSON_GetArraySize(jwear) >= 4) {
+    for (int i = 0; i < 4; ++i) {
+      const cJSON *x = cJSON_GetArrayItem((cJSON*)jwear, i);
+      if (cJSON_IsNumber(x)) GET_OBJ_WEAR(obj)[i] = x->valueint;
+    }
+  }
+
+  if (include_contents) {
+    const cJSON *jcont = cJSON_GetObjectItemCaseSensitive(jo, "contents");
+    if (cJSON_IsArray(jcont)) {
+      cJSON *it = NULL;
+      cJSON_ArrayForEach(it, jcont) {
+        struct obj_data *child = obj_from_json_node(it, /*include_contents=*/true);
+        if (child) obj_to_obj(child, obj);
+      }
+    }
+  }
+
+  return obj;
+}
+
+/* Paths */
+static void ensure_stash_dirs(void) {
+  mkdir(PERSISTENT_PATH, 0755);
+  mkdir(ACCOUNT_STASH_PATH, 0755);
+}
+static void stash_path(const char *accname, char *out, size_t n) {
+  snprintf(out, n, ACCOUNT_STASH_PATH "%s.json", accname);
+}
+
+/* Lazy init */
+static struct account_stash *stash_new(int cap) {
+  if (cap < 0) cap = 0;
+  struct account_stash *st = calloc(1, sizeof(*st));
+  st->capacity = cap;
+  st->slots = calloc(cap, sizeof(*st->slots));
+  st->dirty = true;
+  return st;
+}
+
+/* Helpers */
+static const char *acc_name_for(struct char_data *ch) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  return acc ? acc->name : NULL;
+}
+static struct account_stash *acc_get_or_load_stash(struct char_data *ch) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) return NULL;
+  if (!acc->stash) (void)stash_load_json(acc->name, &acc->stash);
+  return acc->stash;
+}
+
+/* Replaces stash_put_vnum(...) */
+static bool stash_put_obj(struct account_stash *st, struct obj_data *obj) {
+  if (!st || !obj) return false;
+
+  /* Optional policy: block containers with contents or non-persist items */
+  if (GET_OBJ_TYPE(obj) == ITEM_CONTAINER && obj->contains) return false;
+  if (!should_persist_object(obj)) return false;
+
+  for (int i = 0; i < st->capacity; ++i) {
+    if (!st->slots[i].obj) {
+      st->slots[i].obj = obj;  /* stash owns it now */
+      st->used++;
+      st->dirty = 1;
+      return true;
+    }
+  }
+  return false; /* no free slot */
+}
+
+/* Returns the object pointer (caller becomes owner). NULL if empty/invalid. */
+static struct obj_data *stash_take_slot(struct account_stash *st, int slot) {
+  if (!st || slot < 0 || slot >= st->capacity) return NULL;
+  struct obj_data *obj = st->slots[slot].obj;
+  if (!obj) return NULL;
+  st->slots[slot].obj = NULL;
+  if (st->used > 0) st->used--;
+  st->dirty = 1;
+  return obj;
+}
+
+static bool stash_set_capacity(struct account_stash *st, int newcap) {
+  if (!st || newcap < 0) return false;
+  if (newcap == st->capacity) return true;
+
+  struct account_stash_slot *ns = calloc(newcap, sizeof(*ns));
+  int kept = 0;
+  /* keep the first newcap objects; drop beyond newcap (admin must ensure safe shrink) */
+  for (int i = 0; i < newcap && i < st->capacity; ++i) {
+    ns[i].obj = st->slots[i].obj;
+    if (ns[i].obj) kept++;
+  }
+  /* NOTE: if newcap < old capacity and there are objects beyond newcap,
+     they will be leaked unless we handle them. Either:
+       - reject shrink when it would drop objects (recommended), OR
+       - extract_obj() those beyond newcap here.
+     For safety, reject shrink if any would be dropped:
+  */
+  if (newcap < st->capacity) {
+    for (int i = newcap; i < st->capacity; ++i) {
+      if (st->slots[i].obj) {
+        /* reject shrink */
+        free(ns);
+        return false;
+      }
+    }
+  }
+
+  free(st->slots);
+  st->slots = ns;
+  st->capacity = newcap;
+  st->used = kept;
+  st->dirty = 1;
+  return true;
+}
+
+/* LOAD */
+static bool stash_load_json(const char *accname, struct account_stash **out) {
+  ensure_stash_dirs();
+  char path[1024]; stash_path(accname, path, sizeof(path));
+
+  FILE *fp = fopen(path, "rb");
+  if (!fp) {
+    struct account_stash *st = calloc(1, sizeof(*st));
+    st->capacity = 10;
+    st->slots = calloc(st->capacity, sizeof(*st->slots));
+    st->used = 0; st->dirty = 0;
+    *out = st; return true;
+  }
+
+  fseek(fp, 0, SEEK_END);
+  long len = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  char *buf = malloc(len + 1);
+  (void)fread(buf, 1, len, fp); buf[len] = '\0';
+  fclose(fp);
+
+  cJSON *root = cJSON_Parse(buf);
+  free(buf);
+  if (!root) return false;
+
+  int cap = 10;
+  const cJSON *jcap = cJSON_GetObjectItemCaseSensitive(root, "capacity");
+  if (cJSON_IsNumber(jcap)) cap = jcap->valueint;
+
+  struct account_stash *st = calloc(1, sizeof(*st));
+  st->capacity = cap;
+  st->slots = calloc(st->capacity, sizeof(*st->slots));
+  st->used = 0; st->dirty = 0;
+
+  const cJSON *jslots = cJSON_GetObjectItemCaseSensitive(root, "slots");
+  if (cJSON_IsArray(jslots)) {
+    cJSON *it = NULL;
+    cJSON_ArrayForEach(it, jslots) {
+      const cJSON *jslot = cJSON_GetObjectItemCaseSensitive(it, "slot");
+      const cJSON *jobj  = cJSON_GetObjectItemCaseSensitive(it, "obj");
+      if (!cJSON_IsNumber(jslot)) continue;
+      int s = jslot->valueint;
+      if (s < 0 || s >= st->capacity) continue;
+      if (jobj && !cJSON_IsNull(jobj)) {
+        st->slots[s].obj = obj_from_json_node(jobj, /*include_contents=*/false);
+        if (st->slots[s].obj) st->used++;
+      }
+    }
+  }
+  cJSON_Delete(root);
+  *out = st;
+  return true;
+}
+
+/* SAVE */
+static bool stash_save_json(const char *accname, const struct account_stash *st) {
+  if (!st) return true;
+  ensure_stash_dirs();
+  char path[1024]; stash_path(accname, path, sizeof(path));
+
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddNumberToObject(root, "capacity", st->capacity);
+
+  cJSON *slots = cJSON_CreateArray();
+  for (int i = 0; i < st->capacity; ++i) {
+    cJSON *entry = cJSON_CreateObject();
+    cJSON_AddNumberToObject(entry, "slot", i);
+    if (st->slots[i].obj) {
+      cJSON_AddItemToObject(entry, "obj",
+        json_from_obj(st->slots[i].obj, /*include_contents=*/false));
+    } else {
+      cJSON_AddItemToObject(entry, "obj", cJSON_CreateNull());
+    }
+    cJSON_AddItemToArray(slots, entry);
+  }
+  cJSON_AddItemToObject(root, "slots", slots);
+
+  char *json = cJSON_PrintBuffered(root, 4096, 1);
+  cJSON_Delete(root);
+
+  FILE *fp = fopen(path, "wb");
+  if (!fp) { free(json); return false; }
+  fwrite(json, 1, strlen(json), fp);
+  fclose(fp);
+  free(json);
+  return true;
+}
+
+void acc_stash_list(struct char_data *ch) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) {
+    send_to_char(ch, "\trNo account linked.\tn\r\n");
+    return;
+  }
+
+  /* Lazy-load if not already loaded */
+  if (!acc->stash)
+    (void)stash_load_json(acc->name, &acc->stash);
+
+  struct account_stash *st = acc->stash;
+  if (!st) {
+    send_to_char(ch, "\trCould not load your stash.\tn\r\n");
+    return;
+  }
+
+  send_to_char(ch, "\n\tyAccount Stash\tn (%d/%d used)\r\n", st->used, st->capacity);
+  send_to_char(ch, "\twSlot  \twCount  \tnItem\r\n");
+  send_to_char(ch, "\tw----  \tw-----  \tn--------------------------------\r\n");
+
+  for (int i = 0; i < st->capacity; ++i) {
+    if (!st->slots[i].obj) {
+      send_to_char(ch, "\tw%3d)         \tn-- empty --\r\n", i + 1);
+    } else {
+      const char *name = st->slots[i].obj->short_description ?
+                         st->slots[i].obj->short_description : "unknown object";
+      send_to_char(ch, "\tw%3d)  \tg%-5d  \tn%s\r\n",
+                   i + 1, /* 1-based for player display */
+                   st->slots[i].count > 0 ? st->slots[i].count : 1,
+                   name);
+    }
+  }
+
+  /* Auto-save if stash changed */
+  if (st->dirty) {
+    (void)stash_save_json(acc->name, st);
+    st->dirty = 0;
+  }
+}
+
+bool acc_stash_put_obj(struct char_data *ch, struct obj_data *obj) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) {
+    send_to_char(ch, "\trNo account linked.\tn\r\n");
+    return false;
+  }
+
+  if (!acc->stash)
+    (void)stash_load_json(acc->name, &acc->stash);
+
+  struct account_stash *st = acc->stash;
+  if (!st) {
+    send_to_char(ch, "\trCould not load your stash.\tn\r\n");
+    return false;
+  }
+
+  if (!should_persist_object(obj)) {
+    send_to_char(ch, "\trThat item cannot be stashed.\tn\r\n");
+    return false;
+  }
+
+  /* First, try to stack with an existing identical item */
+  for (int i = 0; i < st->capacity; i++) {
+    if (st->slots[i].obj &&
+        GET_OBJ_VNUM(st->slots[i].obj) == GET_OBJ_VNUM(obj) &&
+        !strcmp(st->slots[i].obj->name, obj->name) &&
+        !strcmp(st->slots[i].obj->short_description, obj->short_description) &&
+        memcmp(&st->slots[i].obj->obj_flags, &obj->obj_flags, sizeof(struct obj_flag_data)) == 0) {
+
+      st->slots[i].count++;
+      st->dirty = true;
+      obj_from_char(obj);
+      extract_obj(obj);
+
+    char buf[MAX_STRING_LENGTH];
+    snprintf(buf, sizeof(buf), "\tgYou stack $p into slot\tn \ty%d\tn.", i + 1);
+    act(buf, FALSE, ch, st->slots[i].obj, NULL, TO_CHAR);
+
+    act("\tg$n stacks $p into a stash.\tn", TRUE, ch, st->slots[i].obj, NULL, TO_ROOM);
+      return true;
+    }
+  }
+
+  /* Otherwise, put in first empty slot */
+  for (int i = 0; i < st->capacity; i++) {
+    if (!st->slots[i].obj) {
+      obj_from_char(obj);
+      st->slots[i].obj = obj;
+      st->slots[i].count = 1;
+      st->used++;
+      st->dirty = true;
+
+    char buf[MAX_STRING_LENGTH];
+    snprintf(buf, sizeof(buf), "\tgYou stash $p into slot\tn \ty%d\tn.", i + 1);
+    act(buf, FALSE, ch, obj, NULL, TO_CHAR);
+
+    act("\tg$n stashes $p into a stash.\tn", TRUE, ch, obj, NULL, TO_ROOM);
+      return true;
+    }
+  }
+
+  send_to_char(ch, "\trYour stash is full.\tn\r\n");
+  return false;
+}
+
+bool acc_stash_take_to_char(struct char_data *ch, int slot) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) return false;
+  if (!acc->stash) (void)stash_load_json(acc->name, &acc->stash);
+  struct account_stash *st = acc->stash;
+  if (!st) return false;
+
+  struct obj_data *obj = stash_take_slot(st, slot);
+  if (!obj) { send_to_char(ch, "\trThat slot is empty.\tn\r\n"); return false; }
+
+  obj_to_char(obj, ch);
+  act("\tgYou withdraw $p from your stash.\tn", false, ch, obj, 0, TO_CHAR);
+  (void)stash_save_json(acc->name, st); st->dirty = 0;
+  return true;
+}
+
+bool acc_stash_set_capacity(struct char_data *ch, int newcap) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) return false;
+  if (!acc->stash) (void)stash_load_json(acc->name, &acc->stash);
+  struct account_stash *st = acc->stash;
+  if (!st) return false;
+
+  bool ok = stash_set_capacity(st, newcap);
+  if (ok) { (void)stash_save_json(acc->name, st); st->dirty = 0; }
+  return ok;
+}
+
+/* utils.c */
+void acc_stash_free(struct account_data *acc) {
+  if (!acc || !acc->stash) return;
+  for (int i = 0; i < acc->stash->capacity; ++i) {
+    if (acc->stash->slots[i].obj) {
+      extract_obj(acc->stash->slots[i].obj);
+      acc->stash->slots[i].obj = NULL;
+    }
+  }
+  free(acc->stash->slots);
+  free(acc->stash);
+  acc->stash = NULL;
+}
+
+/* Puts an object into a specific stash slot (0-based index).
+ * Returns true if successful, false otherwise. */
+bool acc_stash_put_obj_in_slot(struct char_data *ch, struct obj_data *obj, int slot) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) {
+    send_to_char(ch, "\trNo account linked.\tn\r\n");
+    return false;
+  }
+
+  if (!acc->stash)
+    (void)stash_load_json(acc->name, &acc->stash);
+
+  struct account_stash *st = acc->stash;
+  if (!st) {
+    send_to_char(ch, "\trCould not load your stash.\tn\r\n");
+    return false;
+  }
+
+  if (slot < 0 || slot >= st->capacity) {
+    send_to_char(ch, "\trSlot number out of range.\tn\r\n");
+    return false;
+  }
+
+  if (!should_persist_object(obj)) {
+    send_to_char(ch, "\trThat item cannot be stashed.\tn\r\n");
+    return false;
+  }
+
+  /* If slot already contains identical item → stack */
+  if (st->slots[slot].obj &&
+      GET_OBJ_VNUM(st->slots[slot].obj) == GET_OBJ_VNUM(obj) &&
+      !strcmp(st->slots[slot].obj->name, obj->name) &&
+      !strcmp(st->slots[slot].obj->short_description, obj->short_description) &&
+      memcmp(&st->slots[slot].obj->obj_flags, &obj->obj_flags, sizeof(struct obj_flag_data)) == 0) {
+
+    st->slots[slot].count++;
+    st->dirty = true;
+    obj_from_char(obj);
+    extract_obj(obj);
+
+    char buf[MAX_STRING_LENGTH];
+    snprintf(buf, sizeof(buf), "\tgYou stack $p into slot\tn \ty%d\tn.", slot + 1);
+    act(buf, FALSE, ch, st->slots[slot].obj, NULL, TO_CHAR);
+
+    act("\tg$n stacks $p into a stash.\tn", TRUE, ch, st->slots[slot].obj, NULL, TO_ROOM);
+    return true;
+  }
+
+  /* If slot is empty → put item */
+  if (!st->slots[slot].obj) {
+    obj_from_char(obj);
+    st->slots[slot].obj = obj;
+    st->slots[slot].count = 1;
+    st->used++;
+    st->dirty = true;
+
+    char buf[MAX_STRING_LENGTH];
+    snprintf(buf, sizeof(buf), "\tgYou stash $p into slot\tn \ty%d\tn.", slot + 1);
+    act(buf, FALSE, ch, obj, NULL, TO_CHAR);
+
+    act("\tg$n stashes $p into a stash.\tn", TRUE, ch, obj, NULL, TO_ROOM);
+    return true;
+  }
+
+  send_to_char(ch, "\trThat slot is already occupied by a different item.\tn\r\n");
+  return false;
+}
+
+
+/* Withdraws an object from a specific stash slot (0-based index).
+ * Returns true if successful, false otherwise. */
+bool acc_stash_take_from_slot(struct char_data *ch, int slot) {
+  struct account_data *acc = GET_ACCOUNT(ch);
+  if (!acc) {
+    send_to_char(ch, "\trNo account linked.\tn\r\n");
+    return false;
+  }
+
+  /* Lazy-load the stash if not loaded */
+  if (!acc->stash)
+    (void)stash_load_json(acc->name, &acc->stash);
+
+  struct account_stash *st = acc->stash;
+  if (!st) {
+    send_to_char(ch, "\trCould not load your stash.\tn\r\n");
+    return false;
+  }
+
+  /* Range check */
+  if (slot < 0 || slot >= st->capacity) {
+    send_to_char(ch, "\trSlot number out of range.\tn\r\n");
+    return false;
+  }
+
+  /* Check if slot is empty */
+  if (!st->slots[slot].obj) {
+    send_to_char(ch, "\trThat slot is empty.\tn\r\n");
+    return false;
+  }
+
+  struct obj_data *obj;
+
+  /* Handle stacks */
+  if (st->slots[slot].count > 1) {
+    /* Reduce count in stash */
+    st->slots[slot].count--;
+
+    /* Create a duplicate object */
+    obj = read_object(GET_OBJ_VNUM(st->slots[slot].obj), VIRTUAL);
+    if (obj) {
+      /* Copy important dynamic fields from original if needed */
+      obj->short_description = strdup(st->slots[slot].obj->short_description);
+      obj->description = strdup(st->slots[slot].obj->description);
+      obj->name = strdup(st->slots[slot].obj->name);
+      obj->obj_flags = st->slots[slot].obj->obj_flags;
+    }
+  } else {
+    /* Single item → remove from stash */
+    obj = st->slots[slot].obj;
+    st->slots[slot].obj = NULL;
+    st->slots[slot].count = 0;
+    st->used--;
+  }
+
+  st->dirty = true;
+
+  /* Give the object to the character */
+  if (obj) {
+    obj_to_char(obj, ch);
+    char buf[MAX_STRING_LENGTH];
+    snprintf(buf, sizeof(buf), "\tgYou withdraw $p from slot\tn \ty%d\tn.", slot + 1);
+    act(buf, FALSE, ch, obj, NULL, TO_CHAR);
+
+    act("\tg$n withdraws $p from a stash.\tn", TRUE, ch, obj, NULL, TO_ROOM);
+
+    return true;
+  } else {
+    send_to_char(ch, "\trError: Could not retrieve object from slot.\tn\r\n");
+    return false;
+  }
+}
+
